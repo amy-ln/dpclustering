@@ -35,6 +35,3 @@ def lloyd(k: int, X: pd.DataFrame, n_iter: int):
             C[i] = X[assignments == i].mean()
     return C
 
-X = pd.DataFrame(np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9], [4, 9, 11], [1, 5, 3]]),
-                   columns=['a', 'b', 'c'])
-print(lloyd(3, X, 3))
