@@ -58,7 +58,7 @@ def dplloyd(k: int, X: pd.DataFrame, n_iter: int, e: float, return_steps: bool =
         # update center to be the average of all points assigned
         for i in range(0, len(C)):
             # noisily calculate the number of points in the cluster
-            n = X[assignments == i].count() + noise(n_iter / e, 1)
+            n = X[assignments == i].count() + noise(n_iter / e, 1) # DO I NEED TO SPLIT EPSILON HERE OVER THE TWO NOISY UPDATES?    
             # noisily calculate the sum of points in the cluster
             s = X[assignments == i].sum() + noise((d*n_iter) / e, d)
             # update centroid
@@ -68,10 +68,22 @@ def dplloyd(k: int, X: pd.DataFrame, n_iter: int, e: float, return_steps: bool =
         return all_centers
     return C
 
+def lloyd_with_weights(k: int, X: pd.DataFrame, weights: pd.DataFrame, n_iter: int):
+    # initalise centers
+    C = initialCentroids(k, X.shape[1])
+    # repeat for n_iter for each cluster:
+    for _ in range(0, n_iter):
+        # assign each point to its closest center
+        assignments = X.apply(lambda row: getClosestCenter(row, C), axis=1)
+        # update center to be the average of all points assigned
+        for i in range(0, len(C)):
+            C[i] = (X[assignments == i].mul(weights[assignments == i], axis=0).sum()) / (weights[assignments==i].sum())
+    return C
+
 
 X1 = pd.DataFrame(np.random.multivariate_normal(mean=(5,10), cov=[[5,0],[0,5]], size=200))
 X2 = pd.DataFrame(np.random.multivariate_normal(mean=(2,3), cov=[[5,0],[0,5]], size=150))
 X = pd.concat([X1, X2])
 
-print(dplloyd(k=2, X=normalise(X), n_iter=5, e =1, return_steps=True))
+# print(dplloyd(k=2, X=normalise(X), n_iter=5, e =1, return_steps=True))
 
