@@ -18,7 +18,8 @@ def create_grid_synopsis(X: pd.DataFrame, e: float, M: float, d: int) -> pd.Data
     edges = np.linspace(-1, 1, k + 1)
     centers = (edges[:-1] + edges[1:]) / 2
     grid = pd.DataFrame(np.array(list(itertools.product(centers, repeat=d))))
-    
+
+    X
     squares = X.apply(lambda row: getSquare(row, grid), axis=1)
 
     points = squares.value_counts().reset_index(name="count")
@@ -27,8 +28,6 @@ def create_grid_synopsis(X: pd.DataFrame, e: float, M: float, d: int) -> pd.Data
     all_points["count"] += noise(1/e, grid.shape[0])
     return all_points
 
-
-    
     
 X1 = pd.DataFrame(np.random.multivariate_normal(mean=(5,10), cov=[[5,0],[0,5]], size=200))
 X2 = pd.DataFrame(np.random.multivariate_normal(mean=(2,3), cov=[[5,0],[0,5]], size=150))
