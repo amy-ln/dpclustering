@@ -2,7 +2,8 @@ import pandas as pd
 import numpy as np
 import itertools
 import matplotlib.pyplot as plt
-from lloyd import distance, normalise, lloyd_with_weights, noise
+from util import distance, normalise, noise
+from lloyd import lloyd_with_weights
 
 def getSquare(x: np.array, grid: pd.DataFrame):
     distances = grid.apply(lambda row: distance(x, row), axis=1)
@@ -34,4 +35,4 @@ X2 = pd.DataFrame(np.random.multivariate_normal(mean=(2,3), cov=[[5,0],[0,5]], s
 X = normalise(pd.concat([X1, X2]))
 p = create_grid_synopsis(X, 1, 10, 2)
 print(p)
-#print(lloyd_with_weights(2, p.iloc[:, :-1], p.iloc[:, -1], n_iter=5))
+print(lloyd_with_weights(2, p.iloc[:, :-1], p.iloc[:, -1], n_iter=5))

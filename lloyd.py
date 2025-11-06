@@ -1,10 +1,6 @@
 import pandas as pd
 import numpy as np
-import typing
-
-# Euclidean distance between x and y is sum of squared differences.
-def distance(x, y):
-    return np.sqrt(sum((x-y)**2))
+from util import distance, noise, normalise
 
 # k is the number of centroids, d is the number of dimensions. This uses no access to the data so is dp by default
 def initialCentroids(k:int, d:int, minimum:int = -1, maximum:int= 1):
@@ -25,10 +21,6 @@ def getClosestCenter(x, C):
     distances = np.apply_along_axis(lambda c: distance(x,c), axis=1, arr=C)
     return np.argmin(distances)
 
-def noise(scale, d):
-    rng = np.random.default_rng()
-    return rng.laplace(0, scale, size=d)
-
 
 def lloyd(k: int, X: pd.DataFrame, n_iter: int):
     # initalise centers
@@ -42,8 +34,6 @@ def lloyd(k: int, X: pd.DataFrame, n_iter: int):
             C[i] = X[assignments == i].mean()
     return C
 
-def normalise(df: pd.DataFrame):
-    return df.apply(lambda x: 2 * (x - x.min()) / (x.max() - x.min()) - 1)
 
 def dplloyd(k: int, X: pd.DataFrame, n_iter: int, e: float, return_steps: bool = False):
     # initalise centers
