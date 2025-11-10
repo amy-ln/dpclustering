@@ -4,9 +4,9 @@ import itertools
 import matplotlib.pyplot as plt 
 from typing import Optional
 
-# get lsh function of each point
-# branch on the first bit, then second bit.. etc
-# privately count points each time - how do we split up the privacy budget? 
+# TO IMPROVE
+# not sure adding privacy correctly - how to split up privacy budget? how much noise should we add to the noisy counts?
+# is the tree splitting correctly? observed many leaf nodes with large numbers of points. does normalisation affect this? 
 
 # use this from the diffprivlibrary for hashing 
 from lsh import SimHash
