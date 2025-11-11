@@ -6,13 +6,13 @@ from typing import Optional
 
 # TO IMPROVE
 # not sure adding privacy correctly - how to split up privacy budget? how much noise should we add to the noisy counts?
-# is the tree splitting correctly? observed many leaf nodes with large numbers of points. does normalisation affect this? 
+# is the tree splitting correctly? observed many leaf nodes with large numbers of points. does normalisation affect this? - I think splitting is weird because of large amounts of noise 
 
 # use this from the diffprivlibrary for hashing 
 from lsh import SimHash
 from util import noise, normalise
 
-def create_bucket_synopsis(X: pd.DataFrame, e:float, d:int, branching_threshold: int, max_depth: int):
+def create_bucket_synopsis(X: pd.DataFrame, e:float, d:int, branching_threshold: int, max_depth: int, data_bound: float):
 
     # give half the privacy budget to computing the tree and half to computing weighted averages of points?
     e1, e2 = e/2, e/2 
@@ -26,10 +26,9 @@ def create_bucket_synopsis(X: pd.DataFrame, e:float, d:int, branching_threshold:
     # use leaf nodes to create the weighted points 
     rows = []
     for leaf in leaves:
-        # assume the sum has a sensitivity of 1*d because data is normalised
+        # a sum query has sensitivity d * data_bound 
         coords, weight = leaf
-        average = ((coords).sum() + noise(d / e2, d)) / weight
-        
+        average = ((coords).sum() + noise(d * data_bound / e2, d)) / weight
         row = list(average) + [weight]
         rows.append(row)
 
@@ -82,9 +81,9 @@ class LshTree:
 
 
 """
-X1 = np.random.multivariate_normal(mean=(5,10), cov=[[5,0],[0,5]], size=20)
-X2 = np.random.multivariate_normal(mean=(2,3), cov=[[5,0],[0,5]], size=30)
+X1 = np.random.multivariate_normal(mean=(5,10), cov=[[5,0],[0,5]], size=5)
+X2 = np.random.multivariate_normal(mean=(2,3), cov=[[5,0],[0,5]], size=5)
 X = normalise(pd.DataFrame(np.concatenate((X1, X2))))
 
-create_bucket_synopsis(X, 1, 2, 5, 5)
+t = LshTree(e=1, branching_threshold=3, max_depth=4, X=X, dimension=2)
 """
