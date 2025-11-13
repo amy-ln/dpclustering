@@ -43,7 +43,8 @@ def lloyd(k: int, X: pd.DataFrame, n_iter: int):
         assignments = X.apply(lambda row: getClosestCenter(row, C), axis=1)
         # update center to be the average of all points assigned
         for i in range(0, len(C)):
-            C[i] = X[assignments == i].mean()
+            if (assignments == i).any():
+                C.iloc[i, :] = X[assignments == i].mean()
     return C
 
 
@@ -59,12 +60,13 @@ def dplloyd(k: int, X: pd.DataFrame, n_iter: int, e: float, return_steps: bool =
         assignments = X.apply(lambda row: getClosestCenter(row, C), axis=1)
         # update center to be the average of all points assigned
         for i in range(0, len(C)):
-            # noisily calculate the number of points in the cluster
-            n = X[assignments == i].count() + noise(n_iter / e, 1) # DO I NEED TO SPLIT EPSILON HERE OVER THE TWO NOISY UPDATES?    
-            # noisily calculate the sum of points in the cluster
-            s = X[assignments == i].sum() + noise((d*n_iter) / e, d)
-            # update centroid
-            C[i] = s / n
+            if (assignments == i).any():
+                # noisily calculate the number of points in the cluster
+                n = X[assignments == i].count() + noise(n_iter / e, 1) # DO I NEED TO SPLIT EPSILON HERE OVER THE TWO NOISY UPDATES?    
+                # noisily calculate the sum of points in the cluster
+                s = X[assignments == i].sum() + noise((d*n_iter) / e, d)
+                # update centroid
+                C.iloc[i, :] = s / n
         all_centers.append(C.copy())
     if return_steps:
         return all_centers
@@ -79,7 +81,8 @@ def lloyd_with_weights(k: int, X: pd.DataFrame, weights: pd.DataFrame, n_iter: i
         assignments = X.apply(lambda row: getClosestCenter(row, C), axis=1)
         # update center to be the average of all points assigned
         for i in range(0, len(C)):
-            C[i] = (X[assignments == i].mul(weights[assignments == i], axis=0).sum()) / (weights[assignments==i].sum())
+            if (assignments == i).any():
+                C.iloc[i, :] = (X[assignments == i].mul(weights[assignments == i], axis=0).sum()) / (weights[assignments==i].sum())
     return C
 
 
