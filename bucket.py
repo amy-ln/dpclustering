@@ -4,24 +4,25 @@ import itertools
 import matplotlib.pyplot as plt 
 from typing import Optional
 
+# use this from the diffprivlibrary for hashing 
+from lsh import SimHash
+
+# import my own functions from util
+from util import noise, normalise
+
 # TO IMPROVE
 # not sure adding privacy correctly - how to split up privacy budget? how much noise should we add to the noisy counts?
 # is the tree splitting correctly? observed many leaf nodes with large numbers of points. does normalisation affect this? - I think splitting is weird because of large amounts of noise 
-
-# use this from the diffprivlibrary for hashing 
-from lsh import SimHash
-from util import noise, normalise
+# perhaps number of clusters will affect the max_depth and branching_thresholds somehow?
 
 def create_bucket_synopsis(X: pd.DataFrame, e:float, d:int, branching_threshold: int, max_depth: int, data_bound: float):
 
     # give half the privacy budget to computing the tree and half to computing weighted averages of points?
     e1, e2 = e/2, e/2 
-
+ 
     # create tree : return leaf nodes pointing to all points "in" that node
     tree = LshTree(e1, branching_threshold, max_depth, X, X.shape[1])
     leaves = tree.get_leaves()
-    print("Leaves")
-    print(leaves)
 
     # use leaf nodes to create the weighted points 
     rows = []
