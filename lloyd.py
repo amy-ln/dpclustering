@@ -72,9 +72,9 @@ def dplloyd(k: int, X: pd.DataFrame, n_iter: int, e: float, return_steps: bool =
         return all_centers
     return C
 
-def lloyd_with_weights(k: int, X: pd.DataFrame, weights: pd.DataFrame, n_iter: int):
+def lloyd_with_weights(k: int, X: pd.DataFrame, weights: pd.DataFrame, n_iter: int, rs):
     # initalise centers
-    C = initialize_spherical_clusters(k, X.shape[1], radius=1)
+    C = initialize_spherical_clusters(k, X.shape[1], radius=1, random_state=rs)
     # repeat for n_iter for each cluster:
     for _ in range(0, n_iter):
         # assign each point to its closest center
