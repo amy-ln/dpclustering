@@ -16,6 +16,18 @@ def initialCentroidsWithData(k: int, X: pd.DataFrame):
 
     return C
 
+def initialize_spherical_clusters(k, d, radius=None, random_state=42):
+    if radius is None:
+        radius = d
+    
+    rng = np.random.default_rng(random_state)
+    vecs = rng.normal(size=(k, d))
+    vecs /= np.linalg.norm(vecs, axis=1, keepdims=True)  # normalize to unit sphere
+    centers = vecs * radius
+
+    return pd.DataFrame(centers)
+
+
 def getClosestCenter(x, C):
     # x is the data point, C is all the centers. Return index of the closest center. 
     distances = np.apply_along_axis(lambda c: distance(x,c), axis=1, arr=C)
@@ -60,7 +72,7 @@ def dplloyd(k: int, X: pd.DataFrame, n_iter: int, e: float, return_steps: bool =
 
 def lloyd_with_weights(k: int, X: pd.DataFrame, weights: pd.DataFrame, n_iter: int):
     # initalise centers
-    C = initialCentroids(k, X.shape[1])
+    C = initialize_spherical_clusters(k, X.shape[1], radius=1)
     # repeat for n_iter for each cluster:
     for _ in range(0, n_iter):
         # assign each point to its closest center

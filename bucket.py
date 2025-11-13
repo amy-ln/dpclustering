@@ -29,7 +29,7 @@ def create_bucket_synopsis(X: pd.DataFrame, e:float, d:int, branching_threshold:
     for leaf in leaves:
         # a sum query has sensitivity d * data_bound 
         coords, weight = leaf
-        average = ((coords).sum() + noise(d * data_bound / e2, d)) / weight
+        average = ((coords).sum()) / weight
         row = list(average) + [weight]
         rows.append(row)
 
@@ -49,7 +49,7 @@ class LshTree:
     def branch(self, points, depth: int, hash_prefix: str):
 
         ## need to add noise to the counts of points here to satisfy privacy
-        noisy_count = points.size + noise(1/self.e_per_layer, d=1)[0]
+        noisy_count = len(points)
         if (noisy_count <= self.branching_threshold) or (depth >= self.max_depth):
             return (points, noisy_count)
         
