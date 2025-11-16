@@ -51,7 +51,7 @@ class Dataset:
     def non_private_lloyd(self, k: int):
         # initalise centers
         n_iter=10
-        C = initialCentroids(k, X.shape[1])
+        C = initialCentroids(k, self.dimension)
         # repeat for n_iter for each cluster:
         for _ in range(0, n_iter):
             # assign each point to its closest center
@@ -65,6 +65,7 @@ class Dataset:
     def dplloyd(self, k: int, n_iter: int):
         # initalise centers
         C = initialCentroids(k, self.dimension)
+        e_per_iter = self.epsilon / n_iter
         # repeat for n_iter for each cluster:
         for _ in range(0, n_iter):
             # assign each point to its closest center
@@ -73,9 +74,9 @@ class Dataset:
             for i in range(0, len(C)):
                 if (assignments == i).any():
                     # noisily calculate the number of points in the cluster
-                    n = self.data[assignments == i].count() + self.laplace_mechanism(n_iter / self.epsilon, 1) # DO I NEED TO SPLIT EPSILON HERE OVER THE TWO NOISY UPDATES?    
+                    n = self.data[assignments == i].count() + self.laplace_mechanism(2 * n_iter / e_per_iter, 1) # DO I NEED TO SPLIT EPSILON HERE OVER THE TWO NOISY UPDATES?    
                     # noisily calculate the sum of points in the cluster
-                    s = X[assignments == i].sum() + self.laplace_mechanism((self.dimension*n_iter) / self.epsilon)
+                    s = self.data[assignments == i].sum() + self.laplace_mechanism((2*self.dimension*n_iter) / e_per_iter)
                     # update centroid
                     C.iloc[i, :] = s / n
         return C
