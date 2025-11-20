@@ -15,27 +15,50 @@ from util import noise, normalise
 # is the tree splitting correctly? observed many leaf nodes with large numbers of points. does normalisation affect this? - I think splitting is weird because of large amounts of noise 
 # perhaps number of clusters will affect the max_depth and branching_thresholds somehow?
 
-def create_bucket_synopsis(X: pd.DataFrame, e:float, d:int, branching_threshold: int, max_depth: int, data_bound: float):
+class Params:
+
+    def __init__(self, epsilon: float, delta: float, radius:float, dimension: int, branching_threshold: int,  max_depth: int = 20):
+        self.epsilon = epsilon
+        self.delta = delta
+        self.radius = radius
+        self.dimension = dimension
+        self.branching_threshold = branching_threshold
+        self.max_depth = max_depth
+
+def create_bucket_synopsis(X: pd.DataFrame, p: Params):
 
     # give half the privacy budget to computing the tree and half to computing weighted averages of points?
-    e1, e2 = e/2, e/2 
+    e1, e2 = p.epsilon/2, p.epsilon/2 
+
+    # make sure data is centered and that all points fall within provided radius
+    
  
     # create tree : return leaf nodes pointing to all points "in" that node
-    tree = LshTree(e1, branching_threshold, max_depth, X, X.shape[1])
+    tree = LshTree(e1, p.branching_threshold, p.max_depth, X, X.shape[1])
     leaves = tree.get_leaves()
 
     # use leaf nodes to create the weighted points 
     rows = []
+    weights = []
     for leaf in leaves:
-        # a sum query has sensitivity d * data_bound 
+        # a sum query has sensitivity d * radius
         coords, weight = leaf
-        average = ((coords).sum() + noise((d * data_bound)/e2, d )) / weight
-        row = list(average) + [weight]
+        average = ((coords).sum() + noise((p.dimension * p.radius)/e2, p.dimension )) / weight
+        row = list(average)
+        weights.append(weight)
         rows.append(row)
 
-    weighted_points = pd.DataFrame(rows)
+    coreset_points = pd.DataFrame(rows)
+    coreset_weights = pd.DataFrame(weights)
 
-    return weighted_points
+    # scale coreset points to defined radius - improves accuracy
+    # does this violate privacy? 
+    scale = p.radius / np.maximum(
+        np.linalg.norm(coreset_points, axis=-1), p.radius
+    ).reshape(1,-1)
+    coreset_points = coreset_points * scale
+
+    return coreset_points, coreset_weights
 
 class LshTree:
 

@@ -74,7 +74,7 @@ class Dataset:
             for i in range(0, len(C)):
                 if (assignments == i).any():
                     # noisily calculate the number of points in the cluster
-                    n = self.data[assignments == i].count() + self.laplace_mechanism(2 * n_iter / e_per_iter, 1) # DO I NEED TO SPLIT EPSILON HERE OVER THE TWO NOISY UPDATES?    
+                    n = self.data[assignments == i].count() + self.laplace_mechanism(2 * n_iter / e_per_iter, 1) 
                     # noisily calculate the sum of points in the cluster
                     s = self.data[assignments == i].sum() + self.laplace_mechanism((2*self.dimension*n_iter) / e_per_iter)
                     # update centroid
