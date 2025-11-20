@@ -55,14 +55,14 @@ def create_bucket_synopsis(X: pd.DataFrame, p: Params):
     # does this violate privacy? 
     scale = p.radius / np.maximum(
         np.linalg.norm(coreset_points, axis=-1), p.radius
-    ).reshape(1,-1)
+    ).reshape(-1, 1)
     coreset_points = coreset_points * scale
 
     return coreset_points, coreset_weights
 
 class LshTree:
 
-    def __init__(self, e, branching_threshold, max_depth, X, dimension):
+    def __init__(self, e:float, branching_threshold:int, max_depth:int, X:np.ndarray, dimension:int):
         self.e_per_layer = e / max_depth
         self.branching_threshold = branching_threshold
         self.max_depth = max_depth
@@ -99,15 +99,33 @@ class LshTree:
         
     def create_lsh_tree(self, X: pd.DataFrame):
 
+        print("Creating tree...")
         tree = self.branch(X, 0, "")
 
         return tree
 
 
-"""
-X1 = np.random.multivariate_normal(mean=(5,10), cov=[[5,0],[0,5]], size=5)
-X2 = np.random.multivariate_normal(mean=(2,3), cov=[[5,0],[0,5]], size=5)
-X = normalise(pd.DataFrame(np.concatenate((X1, X2))))
+rng = np.random.default_rng(42)
+data = np.concat(
+    [rng.multivariate_normal(mean=[1,1], cov=[[1,0],[0,1]], size=100),
+    rng.multivariate_normal(mean=[5,5], cov=[[1,0],[0,1]], size=100),
+    rng.multivariate_normal(mean=[5,0], cov=[[1,0],[0,1]], size=100)]
+)
+# center
+data = data - data.mean()
 
-t = LshTree(e=1, branching_threshold=3, max_depth=4, X=X, dimension=2)
-"""
+# define parameters
+p = Params(epsilon=1, delta=0.0001, radius=5, dimension=2, branching_threshold=3, max_depth=10)
+
+# set the radius to be 5 and scale so everything is inside
+scale = p.radius / np.maximum(
+        np.linalg.norm(data, axis=1), p.radius
+    ).reshape(-1, 1)
+print(data.shape)
+data = data * scale
+
+points, weights = create_bucket_synopsis(data, p)
+print(type(points))
+plt.scatter(data[:,0], data[:,1], 1)
+plt.scatter(points[0], points[1], weights, color="red")
+plt.show()
