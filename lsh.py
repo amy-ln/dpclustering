@@ -46,10 +46,12 @@ class SimHash():
   max_hash_len: int
   projection_vectors: Optional[np.ndarray] = None
 
-  def __post_init__(self):
+  def __post_init__(self, seed=0):
     if self.projection_vectors is None:
-      self.projection_vectors = np.random.normal(
-          size=(self.max_hash_len, self.dim))
+        rng = np.random.default_rng(seed)
+        self.projection_vectors = rng.normal(
+            size=(self.max_hash_len, self.dim)
+        )
       
   def hash_single_point(self, x):
     return x * self.projection_vectors[0]
