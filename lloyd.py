@@ -47,10 +47,42 @@ def lloyd(k: int, X: pd.DataFrame, n_iter: int):
                 C.iloc[i, :] = X[assignments == i].mean()
     return C
 
+class PrivacyBudget:
 
-def dplloyd(k: int, X: pd.DataFrame, n_iter: int, e: float, return_steps: bool = False):
+    def __init__(self, epsilon: float, delta: float = None, method: str = "uniform", total_iter: int = None):
+        self.epsilon = epsilon
+        self.delta = delta
+        self.total_iter = total_iter
+        self.method = method
+
+    def uniform_epsilon(self, t: int) -> float:
+        # get epsilon on iteration t when following uniform approach
+        if self.total_iter:
+            return self.epsilon/self.total_iter
+        else:
+            raise Exception("Haven't set the total number of iterations")
+    
+    def dichotomy_epsilon(self, t:int) -> float:
+        return self.epsilon / 2**t 
+    
+    def series_sum_epsilon(self, t:int) -> float:
+        return self.epsilon / ((t+2)*(t+1))
+    
+    def getEpsilon(self, t:int) -> float:
+        match self.method:
+            case "uniform":
+                return self.uniform_epsilon(t)
+            case "dichotomy":
+                return self.dichotomy_epsilon(t)
+            case "series sum":
+                return self.series_sum_epsilon(t)
+            case _:
+                raise Exception(f"{self.method} is not a valid privacy budget allocation method")
+
+
+def dplloyd(k: int, X: pd.DataFrame, n_iter: int, priv: PrivacyBudget, return_steps: bool = False):
     # initalise centers
-    C = initialCentroids(k, X.shape[1])
+    C = pd.DataFrame(initialCentroids(k, X.shape[1]))
     all_centers = []
     all_centers.append(C.copy())
     d = X.shape[1] # number of dimensions
@@ -60,6 +92,8 @@ def dplloyd(k: int, X: pd.DataFrame, n_iter: int, e: float, return_steps: bool =
         assignments = X.apply(lambda row: getClosestCenter(row, C), axis=1)
         # update center to be the average of all points assigned
         for i in range(0, len(C)):
+            # get epsilon for this iteration
+            e = priv.getEpsilon(i)
             if (assignments == i).any():
                 # noisily calculate the number of points in the cluster
                 n = X[assignments == i].count() + noise(n_iter / e, 1) # DO I NEED TO SPLIT EPSILON HERE OVER THE TWO NOISY UPDATES?    
@@ -86,9 +120,20 @@ def lloyd_with_weights(k: int, X: pd.DataFrame, weights: pd.DataFrame, n_iter: i
     return C
 
 
-X1 = pd.DataFrame(np.random.multivariate_normal(mean=(5,10), cov=[[5,0],[0,5]], size=200))
-X2 = pd.DataFrame(np.random.multivariate_normal(mean=(2,3), cov=[[5,0],[0,5]], size=150))
-X = pd.concat([X1, X2])
+X = normalise(
+        pd.DataFrame(
+            np.concatenate([np.random.multivariate_normal(mean=(5,10), cov=[[5,0],[0,5]], size=200), np.random.multivariate_normal(mean=(2,3), cov=[[5,0],[0,5]], size=150)])
+        )
+)
 
-# print(dplloyd(k=2, X=normalise(X), n_iter=5, e =1, return_steps=True))
+privacy_budget = PrivacyBudget(epsilon=1, method="dichotomy", total_iter=5)
 
+centers = dplloyd(2, X, 5, privacy_budget)
+
+print(centers)
+
+import matplotlib.pyplot as plt
+
+plt.scatter(X[0], X[1])
+plt.scatter(centers[0], centers[1], color="red")
+plt.show()
