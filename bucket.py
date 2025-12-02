@@ -35,7 +35,7 @@ class Params:
 def create_bucket_synopsis(X: pd.DataFrame, p: Params):
 
     # give half the privacy budget to computing the and half to computing weighted averages of points?
-    e1, e2 = p.epsilon*0.9, p.epsilon*0.1 
+    e1, e2 = p.epsilon*0.8, p.epsilon*0.2 
 
     # make sure data is centered and that all points fall within provided radius
 
@@ -51,10 +51,7 @@ def create_bucket_synopsis(X: pd.DataFrame, p: Params):
     averages = []
     for i in range(len(leaves)):
         a = np.sum(leaves[i], axis=0) + noise((p.dimension * p.radius)/e2, p.dimension )
-        print(f"Actual average: {np.sum(leaves[i], axis=0)}")
-        print(f"Noisy average: {a}")
-        print(f"Divided by noisy count: {a / leaves_noisy_counts[i]}")
-        averages.append(a)
+        averages.append(a / leaves_noisy_counts[i])
 
     coreset_points = pd.DataFrame(averages)
     coreset_weights = pd.DataFrame(leaves_noisy_counts)
