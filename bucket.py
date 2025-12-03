@@ -2,19 +2,20 @@ import pandas as pd
 import numpy as np
 import itertools
 import matplotlib.pyplot as plt 
-from typing import Optional
+from typing import Optional, override
 from dataclasses import dataclass
+
 
 # use this from the diffprivlibrary for hashing 
 from lsh import SimHash
 
+# google privacy accountant
+from privacy_accountant import privacy_calculator
+from privacy_accountant import clustering_params
+from privacy_accountant import central_privacy_utils
+
 # import my own functions from util
 from util import noise
-
-# TO IMPROVE
-# not sure adding privacy correctly - how to split up privacy budget? how much noise should we add to the noisy counts?
-# is the tree splitting correctly? observed many leaf nodes with large numbers of points. does normalisation affect this? - I think splitting is weird because of large amounts of noise 
-# perhaps number of clusters will affect the max_depth and branching_thresholds somehow?
 
 class Params:
 
@@ -32,8 +33,34 @@ class Params:
         self.include_threshold = self.branching_threshold / 3
         print(f"Parameters used \n max depth: {self.max_depth}\n branching threshold: {self.branching_threshold} \n include_threshold: {self.include_threshold}")
 
-def count_with_noise(points, e):
-    return len(points) + noise(1 / e, 1)[0]
+def bucket_using_privacy_accountant(X: pd.DataFrame, p: Params):
+
+    multipliers = clustering_params.PrivacyCalculatorMultiplier()
+    privacy_param = clustering_params.DifferentialPrivacyParam(p.epsilon, p.delta)
+    pcalc = privacy_calculator.PrivacyCalculator(
+      privacy_param, p.radius, p.max_depth, multipliers)
+    
+    noisy_n = central_privacy_utils.get_private_count(X.shape[0], pcalc.count_privacy_param)
+    p.calculate_thresholds(noisy_n)
+
+    tree = LshTreeAdvanced(pcalc.count_privacy_param, p.branching_threshold, p.include_threshold, p.max_depth, X, p.dimension, noisy_n) # change to use discrete laplace
+    leaves = tree.get_leaves()
+
+    averages = []
+    for (points, noisy_count) in leaves:
+        averages.append(central_privacy_utils.get_private_average(points, noisy_count, pcalc.average_privacy_param, p.dimension))
+
+    coreset_points = pd.DataFrame(averages)
+    coreset_weights = pd.DataFrame([l[1] for l in leaves])
+
+    # scale coreset points to defined radius - improves accuracy. does not violate privacy as coreset points are private
+    scale = p.radius / np.maximum(
+        np.linalg.norm(coreset_points, axis=-1), p.radius
+    ).reshape(-1, 1)
+    coreset_points = coreset_points * scale
+
+    return coreset_points, coreset_weights
+
 
 def create_bucket_synopsis(X: pd.DataFrame, p: Params):
 
@@ -44,12 +71,12 @@ def create_bucket_synopsis(X: pd.DataFrame, p: Params):
 
     # we compute max_depth + 1 private counts so epsilon we can use here is e1/(max_depth + 1)
     # compute a noisy count of number of rows in entire dataset
-    noisy_n = count_with_noise(X, (e1 / (p.max_depth) + 1))
+    noisy_n = len(X) + noise(1/(e1/(p.max_depth + 1)), 1)[0]
     print("Noisy total count", noisy_n)
     p.calculate_thresholds(noisy_n)
  
     # create tree : return leaf nodes pointing to all points "in" that node
-    tree = LshTree(e1, p.branching_threshold, p.include_threshold, p.max_depth, X, p.dimension, noisy_n)
+    tree = LshTree(e1/(p.max_depth + 1), p.branching_threshold, p.include_threshold, p.max_depth, X, p.dimension, noisy_n)
     leaves = tree.get_leaves()
 
     # a sum query has sensitivity d * radius
@@ -76,21 +103,23 @@ class TreeNode:
     noisy_count: float 
     hash_prefix: str
     points: np.ndarray
-    child0: Optional[TreeNode] = None
-    child1: Optional[TreeNode] = None
+    child0: Optional["TreeNode"] = None
+    child1: Optional["TreeNode"] = None
 
 class LshTree:
 
-    def __init__(self, e:float, branching_threshold:int, include_node_threshold: int, max_depth:int, X:np.ndarray, dimension:int, noisy_total_count: float):
+    def __init__(self, e_per_layer:float, branching_threshold:int, include_node_threshold: int, max_depth:int, X:np.ndarray, dimension:int, noisy_total_count: float):
 
-        self.e_per_layer = e / (max_depth + 1)
+        self.e_per_layer = e_per_layer
         self.branching_threshold = branching_threshold
         self.include_node_threshold = include_node_threshold
         self.max_depth = max_depth
         self.hash = SimHash(dimension, max_depth)
         self.tree = self.create_lsh_tree(X, noisy_total_count)
-        
 
+    def count_with_noise(self, points):
+        return len(points) + noise(1 / self.e_per_layer, 1)[0]
+        
     def branch(self, t : TreeNode, depth: int) -> None:
 
         if (t.noisy_count <= self.branching_threshold) or (depth >= self.max_depth):
@@ -100,8 +129,8 @@ class LshTree:
         else:
             points_dict = self.hash.group_by_next_hash(t.points, t.hash_prefix)
 
-            t.child0 = TreeNode(count_with_noise(points_dict["0"], self.e_per_layer), t.hash_prefix + "0", points_dict["0"])
-            t.child1 = TreeNode(count_with_noise(points_dict["1"], self.e_per_layer), t.hash_prefix + "1", points_dict["1"])
+            t.child0 = TreeNode(self.count_with_noise(points_dict["0"]), t.hash_prefix + "0", points_dict["0"])
+            t.child1 = TreeNode(self.count_with_noise(points_dict["1"]), t.hash_prefix + "1", points_dict["1"])
 
             self.branch(t.child0, depth + 1)
             self.branch(t.child1, depth + 1)
@@ -119,6 +148,12 @@ class LshTree:
         self.branch(tree, 1)
 
         return tree
+    
+class LshTreeAdvanced(LshTree):
+
+    @override 
+    def count_with_noise(self, points):
+        return central_privacy_utils.get_private_count(len(points), self.e_per_layer)
 
 
 rng = np.random.default_rng(42)
@@ -140,7 +175,7 @@ scale = p.radius / np.maximum(
 print(data.shape)
 data = data * scale
 
-points, weights = create_bucket_synopsis(data, p)
+points, weights = bucket_using_privacy_accountant(data, p)
 print(points)
 print(weights)
 plt.scatter(data[:,0], data[:,1], 1)
