@@ -53,8 +53,8 @@ def bucket_using_privacy_accountant(X: pd.DataFrame, p: Params):
     p.include_threshold = max(1, p.include_threshold)
     p.branching_threshold = 3*p.include_threshold
     print(f"Parameters used \n max depth: {p.max_depth}\n branching threshold: {p.branching_threshold} \n include_threshold: {p.include_threshold}")
-
-    tree = LshTreeAdvanced(pcalc.count_privacy_param, p.branching_threshold, p.include_threshold, p.max_depth, X, p.dimension, noisy_n) # change to use discrete laplace
+    print(f"pcalc", pcalc.average_privacy_param, pcalc.count_privacy_param)
+    tree = LshTreeAdvanced(pcalc.count_privacy_param, p.branching_threshold, p.include_threshold, p.max_depth, X, p.dimension, noisy_n) 
     leaves = tree.get_leaves()
 
     averages = []
@@ -115,8 +115,7 @@ class TreeNode:
     noisy_count: float 
     hash_prefix: str
     points: np.ndarray
-    child0: Optional["TreeNode"] = None
-    child1: Optional["TreeNode"] = None
+
 
 class LshTree:
 
@@ -127,39 +126,57 @@ class LshTree:
         self.include_node_threshold = include_node_threshold
         self.max_depth = max_depth
         self.hash = SimHash(dimension, max_depth)
-        self.tree = self.create_lsh_tree(X, noisy_total_count)
+        self.create_lsh_tree(X, noisy_total_count)
 
     def count_with_noise(self, points):
         return len(points) + noise(1 / self.e_per_layer, 1)[0]
         
-    def branch(self, t : TreeNode, depth: int) -> None:
+    def branch(self, t : TreeNode) -> None:
 
-        if (t.noisy_count <= self.branching_threshold) or (depth >= self.max_depth):
-            if t.noisy_count >= self.include_node_threshold:
-                self.leaves.append(t)
-        
-        else:
-            points_dict = self.hash.group_by_next_hash(t.points, t.hash_prefix)
+        points_dict = self.hash.group_by_next_hash(t.points, t.hash_prefix)
 
-            t.child0 = TreeNode(self.count_with_noise(points_dict["0"]), t.hash_prefix + "0", points_dict["0"])
-            t.child1 = TreeNode(self.count_with_noise(points_dict["1"]), t.hash_prefix + "1", points_dict["1"])
+        child0 = TreeNode(self.count_with_noise(points_dict["0"]), t.hash_prefix + "0", points_dict["0"])
+        child1 = TreeNode(self.count_with_noise(points_dict["1"]), t.hash_prefix + "1", points_dict["1"])
 
-            self.branch(t.child0, depth + 1)
-            self.branch(t.child1, depth + 1)
+        return [child0, child1]
     
     def get_leaves(self):
-        l = [(t.points, t.noisy_count) for t in self.leaves]
-        print("leaves", [np.sum(t.points, axis=0) for t in self.leaves])
-        return l
-        
+        level = 0
+        leaves = []
+        while level < self.max_depth:
+            nodes = self.tree.get(level, [])
+            if nodes:
+                leaf_nodes = list(filter(self.is_leaf, nodes))
+                if leaf_nodes:
+                    leaves = leaves + [(t.points, t.noisy_count) for t in leaf_nodes]
+                level += 1
+            else:
+                break
+        print(leaves)
+        return leaves
+
     def create_lsh_tree(self, X: pd.DataFrame, noisy_total_count:float ):
         self.leaves: list[TreeNode] = []
+        self.tree = {} # level index to nodes on level
         noisy_total_count = max(1, noisy_total_count) #always needs to be >= 1 otherwise won't branch
         print("Creating tree...")
-        tree = TreeNode(noisy_total_count, "", X)
-        self.branch(tree, 1)
+        root = TreeNode(noisy_total_count, "", X)
+        self.tree[0] = [root]
+        level = 0
+        while level < self.max_depth:
+            nodes_to_branch = list(filter(self.can_branch, self.tree.get(level, [])))
+            if nodes_to_branch:
+                level += 1
+                self.tree[level] = np.concatenate([self.branch(node) for node in nodes_to_branch]).tolist()
+            else:
+                break
 
-        return tree
+    def can_branch(self, node: TreeNode):
+        return node.noisy_count > self.branching_threshold
+    
+    def is_leaf(self, node: TreeNode):
+        return (node.noisy_count <= self.branching_threshold) and (node.noisy_count >= self.include_node_threshold)
+
     
 class LshTreeAdvanced(LshTree):
 
