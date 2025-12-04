@@ -41,7 +41,18 @@ def bucket_using_privacy_accountant(X: pd.DataFrame, p: Params):
       privacy_param, p.radius, p.max_depth, multipliers)
     
     noisy_n = central_privacy_utils.get_private_count(X.shape[0], pcalc.count_privacy_param)
-    p.calculate_thresholds(noisy_n)
+
+    # copy heuristic thresholds from google code 
+    num_points_in_node_for_low_noise = int(
+      10 * np.sqrt(X.shape[1]) *
+      pcalc.average_privacy_param.gaussian_standard_deviation /
+      pcalc.average_privacy_param.sensitivity)
+    
+    p.include_threshold = min(num_points_in_node_for_low_noise,
+                               noisy_n // (2 * p.k))
+    p.include_threshold = max(1, p.include_threshold)
+    p.branching_threshold = 3*p.include_threshold
+    print(f"Parameters used \n max depth: {p.max_depth}\n branching threshold: {p.branching_threshold} \n include_threshold: {p.include_threshold}")
 
     tree = LshTreeAdvanced(pcalc.count_privacy_param, p.branching_threshold, p.include_threshold, p.max_depth, X, p.dimension, noisy_n) # change to use discrete laplace
     leaves = tree.get_leaves()
@@ -57,6 +68,7 @@ def bucket_using_privacy_accountant(X: pd.DataFrame, p: Params):
     scale = p.radius / np.maximum(
         np.linalg.norm(coreset_points, axis=-1), p.radius
     ).reshape(-1, 1)
+    print(scale)
     coreset_points = coreset_points * scale
 
     return coreset_points, coreset_weights
@@ -142,7 +154,7 @@ class LshTree:
         
     def create_lsh_tree(self, X: pd.DataFrame, noisy_total_count:float ):
         self.leaves: list[TreeNode] = []
-
+        noisy_total_count = max(1, noisy_total_count) #always needs to be >= 1 otherwise won't branch
         print("Creating tree...")
         tree = TreeNode(noisy_total_count, "", X)
         self.branch(tree, 1)
@@ -166,7 +178,7 @@ data = np.concat(
 data = data - data.mean()
 
 # define parameters
-p = Params(epsilon=1, delta=0.0001, radius=5, dimension=2, k=3, max_depth = 5)
+p = Params(epsilon=1, delta=0.0001, radius=5, dimension=2, k=3, max_depth = 20)
 
 # set the radius to be 5 and scale so everything is inside
 scale = p.radius / np.maximum(

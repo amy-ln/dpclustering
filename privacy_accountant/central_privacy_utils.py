@@ -94,5 +94,6 @@ def get_private_count(nonprivate_count: int,
   """
   if count_privacy_param.dlaplace_param == np.inf:
     return nonprivate_count
+  np.random.seed(42)
   return nonprivate_count + stats.dlaplace.rvs(
       count_privacy_param.dlaplace_param)
