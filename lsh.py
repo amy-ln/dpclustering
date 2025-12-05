@@ -45,10 +45,11 @@ class SimHash():
   dim: int
   max_hash_len: int
   projection_vectors: Optional[np.ndarray] = None
+  seed: Optional[int] = 0
 
-  def __post_init__(self, seed=0):
+  def __post_init__(self):
     if self.projection_vectors is None:
-        rng = np.random.default_rng(seed)
+        rng = np.random.default_rng(self.seed)
         self.projection_vectors = rng.normal(
             size=(self.max_hash_len, self.dim)
         )

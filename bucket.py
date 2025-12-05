@@ -84,7 +84,6 @@ def create_bucket_synopsis(X: pd.DataFrame, p: Params):
     # we compute max_depth + 1 private counts so epsilon we can use here is e1/(max_depth + 1)
     # compute a noisy count of number of rows in entire dataset
     noisy_n = len(X) + noise(1/(e1/(p.max_depth + 1)), 1)[0]
-    print("Noisy total count", noisy_n)
     p.calculate_thresholds(noisy_n)
  
     # create tree : return leaf nodes pointing to all points "in" that node
@@ -152,7 +151,6 @@ class LshTree:
                 level += 1
             else:
                 break
-        print(leaves)
         return leaves
 
     def create_lsh_tree(self, X: pd.DataFrame, noisy_total_count:float ):
@@ -170,6 +168,14 @@ class LshTree:
                 self.tree[level] = np.concatenate([self.branch(node) for node in nodes_to_branch]).tolist()
             else:
                 break
+
+    def print_tree(self):
+        level = 0
+        nodes = self.tree.get(level, [])
+        while nodes:
+            print ("level", level, [n.noisy_count for n in nodes])
+            level += 1 
+            nodes = self.tree.get(level, [])
 
     def can_branch(self, node: TreeNode):
         return node.noisy_count > self.branching_threshold
@@ -210,3 +216,5 @@ print(weights)
 plt.scatter(data[:,0], data[:,1], 1)
 plt.scatter(points[0], points[1], np.abs(weights), color="red")
 plt.show()
+
+# i know: data is the same. parameters are the same. i think tree building is where things are differing. are they 10000% adding the same noise? 
