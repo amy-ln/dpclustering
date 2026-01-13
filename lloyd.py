@@ -81,6 +81,18 @@ class PrivacyBudget:
 
 
 def dplloyd(k: int, X: pd.DataFrame, n_iter: int, priv: PrivacyBudget, return_steps: bool = False):
+    """_summary_
+
+    Args:
+        k (int): The number of clusters 
+        X (pd.DataFrame): The dataset containing the points
+        n_iter (int): Number of iterations to do
+        priv (PrivacyBudget): An object describing the privacy budget
+        return_steps (bool, optional): Option to return the centroids at each iteration for debugging. Defaults to False.
+
+    Returns:
+        _type_: _description_
+    """    
     # initalise centers
     C = pd.DataFrame(initialCentroids(k, X.shape[1]))
     all_centers = []
@@ -96,9 +108,9 @@ def dplloyd(k: int, X: pd.DataFrame, n_iter: int, priv: PrivacyBudget, return_st
             e = priv.getEpsilon(i)
             if (assignments == i).any():
                 # noisily calculate the number of points in the cluster
-                n = X[assignments == i].count() + noise(n_iter / e, 1) # DO I NEED TO SPLIT EPSILON HERE OVER THE TWO NOISY UPDATES?    
+                n = X[assignments == i].count() + noise((2*n_iter) / e, 1) 
                 # noisily calculate the sum of points in the cluster
-                s = X[assignments == i].sum() + noise((d*n_iter) / e, d)
+                s = X[assignments == i].sum() + noise((2*d*n_iter) / e, d)
                 # update centroid
                 C.iloc[i, :] = s / n
         all_centers.append(C.copy())
@@ -106,7 +118,7 @@ def dplloyd(k: int, X: pd.DataFrame, n_iter: int, priv: PrivacyBudget, return_st
         return all_centers
     return C
 
-def lloyd_with_weights(k: int, X: pd.DataFrame, weights: pd.DataFrame, n_iter: int, rs):
+def lloyd_with_weights(k: int, X: pd.DataFrame, weights: pd.DataFrame, n_iter: int, rs=42):
     # initalise centers
     C = initialize_spherical_clusters(k, X.shape[1], radius=1, random_state=rs)
     # repeat for n_iter for each cluster:

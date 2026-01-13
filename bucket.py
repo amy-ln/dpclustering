@@ -41,7 +41,7 @@ def bucket_using_privacy_accountant(X: pd.DataFrame, p: Params):
       privacy_param, p.radius, p.max_depth, multipliers)
     
     noisy_n = central_privacy_utils.get_private_count(X.shape[0], pcalc.count_privacy_param)
-
+    print("lalala", pcalc.average_privacy_param.gaussian_standard_deviation, pcalc.average_privacy_param.sensitivity )
     # copy heuristic thresholds from google code 
     num_points_in_node_for_low_noise = int(
       10 * np.sqrt(X.shape[1]) *
@@ -56,7 +56,8 @@ def bucket_using_privacy_accountant(X: pd.DataFrame, p: Params):
     print(f"pcalc", pcalc.average_privacy_param, pcalc.count_privacy_param)
     tree = LshTreeAdvanced(pcalc.count_privacy_param, p.branching_threshold, p.include_threshold, p.max_depth, X, p.dimension, noisy_n) 
     leaves = tree.get_leaves()
-
+    print("Printing entire non private tree...")
+    tree.print_tree()
     averages = []
     for (points, noisy_count) in leaves:
         averages.append(central_privacy_utils.get_private_average(points, noisy_count, pcalc.average_privacy_param, p.dimension))
@@ -68,7 +69,6 @@ def bucket_using_privacy_accountant(X: pd.DataFrame, p: Params):
     scale = p.radius / np.maximum(
         np.linalg.norm(coreset_points, axis=-1), p.radius
     ).reshape(-1, 1)
-    print(scale)
     coreset_points = coreset_points * scale
 
     return coreset_points, coreset_weights
@@ -84,7 +84,18 @@ def create_bucket_synopsis(X: pd.DataFrame, p: Params):
     # we compute max_depth + 1 private counts so epsilon we can use here is e1/(max_depth + 1)
     # compute a noisy count of number of rows in entire dataset
     noisy_n = len(X) + noise(1/(e1/(p.max_depth + 1)), 1)[0]
-    p.calculate_thresholds(noisy_n)
+    
+    # copy heuristic thresholds from google code 
+    num_points_in_node_for_low_noise = int(
+      10 * np.sqrt(X.shape[1]) *
+      (1/e2) /
+      p.radius)
+    
+    p.include_threshold = min(num_points_in_node_for_low_noise,
+                               noisy_n // (2 * p.k))
+    p.include_threshold = max(1, p.include_threshold)
+    p.branching_threshold = 3*p.include_threshold
+    print(f"Parameters used \n max depth: {p.max_depth}\n branching threshold: {p.branching_threshold} \n include_threshold: {p.include_threshold}")
  
     # create tree : return leaf nodes pointing to all points "in" that node
     tree = LshTree(e1/(p.max_depth + 1), p.branching_threshold, p.include_threshold, p.max_depth, X, p.dimension, noisy_n)
@@ -95,7 +106,7 @@ def create_bucket_synopsis(X: pd.DataFrame, p: Params):
     for (points, noisy_count) in leaves:
         a = np.sum(points, axis=0) + noise((p.dimension * p.radius)/e2, p.dimension)
         averages.append(a / noisy_count)
-
+    print(f"num leaves:", len(leaves))
     coreset_points = pd.DataFrame(averages)
     coreset_weights = pd.DataFrame([l[1] for l in leaves])
 
@@ -124,7 +135,7 @@ class LshTree:
         self.branching_threshold = branching_threshold
         self.include_node_threshold = include_node_threshold
         self.max_depth = max_depth
-        self.hash = SimHash(dimension, max_depth)
+        self.hash = SimHash(dimension, max_depth, seed=10)
         self.create_lsh_tree(X, noisy_total_count)
 
     def count_with_noise(self, points):
@@ -201,7 +212,7 @@ data = np.concat(
 data = data - data.mean()
 
 # define parameters
-p = Params(epsilon=1, delta=0.0001, radius=5, dimension=2, k=3, max_depth = 20)
+p = Params(epsilon=1, delta=0.0001, radius=5, dimension=2, k=3, max_depth = 10)
 
 # set the radius to be 5 and scale so everything is inside
 scale = p.radius / np.maximum(
@@ -210,6 +221,7 @@ scale = p.radius / np.maximum(
 print(data.shape)
 data = data * scale
 
+# points, weights = bucket_using_privacy_accountant(data, p)
 points, weights = bucket_using_privacy_accountant(data, p)
 print(points)
 print(weights)
@@ -217,4 +229,4 @@ plt.scatter(data[:,0], data[:,1], 1)
 plt.scatter(points[0], points[1], np.abs(weights), color="red")
 plt.show()
 
-# i know: data is the same. parameters are the same. i think tree building is where things are differing. are they 10000% adding the same noise? 
+# improve my approach so that it aligns with google except using continuous laplace everywhere 
