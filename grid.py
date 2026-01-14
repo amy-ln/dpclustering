@@ -14,17 +14,21 @@ def getSquare(x: np.array, grid: pd.DataFrame):
 # M is the number of squares to split grid into, d is the dimension, e is epsilon
 # assume the data is normalised so each dimension is in [-1,1]
 def create_grid_synopsis(X: pd.DataFrame, e: float, d: int, M: Optional[float] = None) -> pd.DataFrame:
+
+    # a non-private approximation for M. Ideally M would be given. 
     if not M:
         M = round((X.shape[0]*e) / 10)
         print(M)
-    # want to output M weighted points
-    # find the M points first, then set each point in X to its closest point in M
+
+    # create the grid 
     edges = np.linspace(-1, 1, M + 1)
     centers = (edges[:-1] + edges[1:]) / 2
     grid = pd.DataFrame(np.array(list(itertools.product(centers, repeat=d))))
 
+    # assign each point to a square in the grid 
     squares = X.apply(lambda row: getSquare(row, grid), axis=1)
 
+    # get counts of points in the grid, used for the weights 
     points = squares.value_counts().reset_index(name="count")
     all_points = pd.merge(points, grid, on = list(grid.columns),  how="outer").fillna(0)
     # here we would add laplace noise to the counts, since the l1 norm of the counts vector is 1 we want to add a vector sampled from lap(1/e)

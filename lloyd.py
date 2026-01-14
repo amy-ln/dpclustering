@@ -36,7 +36,7 @@ def getClosestCenter(x, C):
 
 def lloyd(k: int, X: pd.DataFrame, n_iter: int):
     # initalise centers
-    C = initialCentroids(k, X.shape[1])
+    C = pd.DataFrame(initialCentroids(k, X.shape[1]))
     # repeat for n_iter for each cluster:
     for _ in range(0, n_iter):
         # assign each point to its closest center
@@ -118,6 +118,7 @@ def dplloyd(k: int, X: pd.DataFrame, n_iter: int, priv: PrivacyBudget, return_st
         return all_centers
     return C
 
+"""
 def lloyd_with_weights(k: int, X: pd.DataFrame, weights: pd.DataFrame, n_iter: int, rs=42):
     # initalise centers
     C = initialize_spherical_clusters(k, X.shape[1], radius=1, random_state=rs)
@@ -130,6 +131,57 @@ def lloyd_with_weights(k: int, X: pd.DataFrame, weights: pd.DataFrame, n_iter: i
             if (assignments == i).any():
                 C.iloc[i, :] = (X[assignments == i].mul(weights[assignments == i], axis=0).sum()) / (weights[assignments==i].sum())
     return C
+"""
+
+def lloyd_with_weights(
+    k: int,
+    X: pd.DataFrame,
+    weights: pd.Series,
+    n_iter: int,
+    rs: int = 42
+):
+    rng = np.random.default_rng(rs)
+
+    # Ensure alignment
+    weights = weights.loc[X.index]
+
+    # Initialize centers
+    C = initialize_spherical_clusters(
+        k, X.shape[1], radius=1, random_state=rs
+    )
+
+    for _ in range(n_iter):
+
+        # Assign each point to closest center
+        assignments = X.apply(
+            lambda row: getClosestCenter(row, C),
+            axis=1
+        )
+
+        for i in range(k):
+            mask = assignments == i
+
+            # Case 1: empty cluster → reinitialize
+            if not mask.any():
+                idx = rng.choice(X.index)
+                C.iloc[i, :] = X.loc[idx].values
+                continue
+
+            X_i = X.loc[mask]
+            w_i = weights.loc[mask]
+            w_sum = w_i.sum()
+
+            # Case 2: zero total weight → reinitialize
+            if w_sum == 0:
+                idx = rng.choice(X.index)
+                C.iloc[i, :] = X.loc[idx].values
+                continue
+
+            # Weighted mean update
+            C.iloc[i, :] = X_i.mul(w_i, axis=0).sum() / w_sum
+
+    return C
+
 
 
 X = normalise(

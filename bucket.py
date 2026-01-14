@@ -17,6 +17,8 @@ from privacy_accountant import central_privacy_utils
 # import my own functions from util
 from util import noise
 
+from lloyd import lloyd_with_weights
+
 class Params:
 
     def __init__(self, epsilon: float, delta: float, radius:float, dimension: int, k:int, max_depth: int = 20):
@@ -115,6 +117,7 @@ def create_bucket_synopsis(X: pd.DataFrame, p: Params):
         np.linalg.norm(coreset_points, axis=-1), p.radius
     ).reshape(-1, 1)
     coreset_points = coreset_points * scale
+    
 
     return coreset_points, coreset_weights
 
@@ -202,7 +205,7 @@ class LshTreeAdvanced(LshTree):
         return central_privacy_utils.get_private_count(len(points), self.e_per_layer)
 
 
-rng = np.random.default_rng(42)
+rng = np.random.default_rng(20)
 data = np.concat(
     [rng.multivariate_normal(mean=[1,1], cov=[[1,0],[0,1]], size=100),
     rng.multivariate_normal(mean=[5,5], cov=[[1,0],[0,1]], size=100),
@@ -210,23 +213,3 @@ data = np.concat(
 )
 # center
 data = data - data.mean()
-
-# define parameters
-p = Params(epsilon=1, delta=0.0001, radius=5, dimension=2, k=3, max_depth = 10)
-
-# set the radius to be 5 and scale so everything is inside
-scale = p.radius / np.maximum(
-        np.linalg.norm(data, axis=1), p.radius
-    ).reshape(-1, 1)
-print(data.shape)
-data = data * scale
-
-# points, weights = bucket_using_privacy_accountant(data, p)
-points, weights = bucket_using_privacy_accountant(data, p)
-print(points)
-print(weights)
-plt.scatter(data[:,0], data[:,1], 1)
-plt.scatter(points[0], points[1], np.abs(weights), color="red")
-plt.show()
-
-# improve my approach so that it aligns with google except using continuous laplace everywhere 
