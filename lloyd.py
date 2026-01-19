@@ -80,8 +80,8 @@ class PrivacyBudget:
                 raise Exception(f"{self.method} is not a valid privacy budget allocation method")
 
 
-def dplloyd(k: int, X: pd.DataFrame, n_iter: int, priv: PrivacyBudget, return_steps: bool = False):
-    """_summary_
+def dplloyd(k: int, X: pd.DataFrame, n_iter: int, priv: PrivacyBudget, return_steps: bool = False) -> np.ndarray:
+    """
 
     Args:
         k (int): The number of clusters 
@@ -91,10 +91,10 @@ def dplloyd(k: int, X: pd.DataFrame, n_iter: int, priv: PrivacyBudget, return_st
         return_steps (bool, optional): Option to return the centroids at each iteration for debugging. Defaults to False.
 
     Returns:
-        _type_: _description_
+        np.ndarray: the cluster centers 
     """    
     # initalise centers
-    C = pd.DataFrame(initialCentroids(k, X.shape[1]))
+    C = initialCentroids(k, X.shape[1])
     all_centers = []
     all_centers.append(C.copy())
     d = X.shape[1] # number of dimensions
@@ -112,7 +112,7 @@ def dplloyd(k: int, X: pd.DataFrame, n_iter: int, priv: PrivacyBudget, return_st
                 # noisily calculate the sum of points in the cluster
                 s = X[assignments == i].sum() + noise((2*d*n_iter) / e, d)
                 # update centroid
-                C.iloc[i, :] = s / n
+                C[i, :] = s / n
         all_centers.append(C.copy())
     if return_steps:
         return all_centers
@@ -182,22 +182,9 @@ def lloyd_with_weights(
 
     return C
 
+d = pd.DataFrame(np.load("synthetic-gaussian.npy"))
+p = PrivacyBudget(1, 1e-6, "uniform", total_iter=5)
 
-
-X = normalise(
-        pd.DataFrame(
-            np.concatenate([np.random.multivariate_normal(mean=(5,10), cov=[[5,0],[0,5]], size=200), np.random.multivariate_normal(mean=(2,3), cov=[[5,0],[0,5]], size=150)])
-        )
+print(
+    dplloyd(3, d, 5, p)
 )
-
-privacy_budget = PrivacyBudget(epsilon=1, method="dichotomy", total_iter=5)
-
-centers = dplloyd(2, X, 5, privacy_budget)
-
-print(centers)
-
-import matplotlib.pyplot as plt
-
-plt.scatter(X[0], X[1])
-plt.scatter(centers[0], centers[1], color="red")
-plt.show()
