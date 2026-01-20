@@ -5,8 +5,8 @@ import numpy as np
 def distance(x, y):
     return np.sqrt(sum((x-y)**2))
 
-def noise(scale, d):
-    rng = np.random.default_rng(42) # add random state for reproducibility
+def noise(scale, d, seed=42):
+    rng = np.random.default_rng(seed) # add random state for reproducibility
     return rng.laplace(0, scale, size=d)
 
 def normalise(df: pd.DataFrame):

@@ -80,7 +80,7 @@ class PrivacyBudget:
                 raise Exception(f"{self.method} is not a valid privacy budget allocation method")
 
 
-def dplloyd(k: int, X: pd.DataFrame, n_iter: int, priv: PrivacyBudget, return_steps: bool = False) -> np.ndarray:
+def dplloyd(k: int, X: pd.DataFrame, n_iter: int, priv: PrivacyBudget, seed=42, return_steps: bool = False) -> np.ndarray:
     """
 
     Args:
@@ -95,22 +95,25 @@ def dplloyd(k: int, X: pd.DataFrame, n_iter: int, priv: PrivacyBudget, return_st
     """    
     # initalise centers
     C = initialCentroids(k, X.shape[1])
-    all_centers = []
-    all_centers.append(C.copy())
+    all_centers = [C.copy()]
     d = X.shape[1] # number of dimensions
     # repeat for n_iter for each cluster:
     for _ in range(0, n_iter):
         # assign each point to its closest center
-        assignments = X.apply(lambda row: getClosestCenter(row, C), axis=1)
+        assignments = np.array([
+            getClosestCenter(x, C) for x in X
+        ])
         # update center to be the average of all points assigned
-        for i in range(0, len(C)):
+        for i in range(k):
             # get epsilon for this iteration
             e = priv.getEpsilon(i)
+            mask = (assignments==i)
             if (assignments == i).any():
-                # noisily calculate the number of points in the cluster
-                n = X[assignments == i].count() + noise((2*n_iter) / e, 1) 
-                # noisily calculate the sum of points in the cluster
-                s = X[assignments == i].sum() + noise((2*d*n_iter) / e, d)
+                X_i = X[mask]
+                # noisily calculate number of points in cluster
+                n = max((X_i.shape[0] + noise((2 * n_iter) / e, 1, seed)), 1e-6) # don't allow negative counts 
+                # noisily calculate sum of points in cluster
+                s = X_i.sum(axis=0) + noise((2 * d * n_iter) / e, d, seed)
                 # update centroid
                 C[i, :] = s / n
         all_centers.append(C.copy())
@@ -182,9 +185,3 @@ def lloyd_with_weights(
 
     return C
 
-d = pd.DataFrame(np.load("synthetic-gaussian.npy"))
-p = PrivacyBudget(1, 1e-6, "uniform", total_iter=5)
-
-print(
-    dplloyd(3, d, 5, p)
-)
