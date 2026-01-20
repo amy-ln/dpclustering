@@ -80,12 +80,12 @@ class PrivacyBudget:
                 raise Exception(f"{self.method} is not a valid privacy budget allocation method")
 
 
-def dplloyd(k: int, X: pd.DataFrame, n_iter: int, priv: PrivacyBudget, seed=42, return_steps: bool = False) -> np.ndarray:
+def dplloyd(k: int, X: np.ndarray, n_iter: int, priv: PrivacyBudget, seed=42, return_steps: bool = False) -> np.ndarray:
     """
 
     Args:
         k (int): The number of clusters 
-        X (pd.DataFrame): The dataset containing the points
+        X (np.ndarray): The dataset containing the points
         n_iter (int): Number of iterations to do
         priv (PrivacyBudget): An object describing the privacy budget
         return_steps (bool, optional): Option to return the centroids at each iteration for debugging. Defaults to False.
