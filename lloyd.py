@@ -98,6 +98,7 @@ def dplloyd(k: int, X: np.ndarray, n_iter: int, priv: PrivacyBudget, seed=42, re
     C = initialize_spherical_clusters(k, X.shape[1], radius=1).to_numpy()
     all_centers = [C.copy()]
     d = X.shape[1] # number of dimensions
+    rng = np.random.default_rng(seed)
     # repeat for n_iter for each cluster:
     for j in range(0, n_iter):
         # assign each point to its closest center
@@ -115,12 +116,12 @@ def dplloyd(k: int, X: np.ndarray, n_iter: int, priv: PrivacyBudget, seed=42, re
                 n = max((X_i.shape[0] + noise((2 * n_iter) / e, 1, seed)), 1e-6) # don't allow negative counts 
                 # noisily calculate sum of points in cluster
                 s = X_i.sum(axis=0) + noise((2 * d * n_iter) / e, d, seed)
-                print(f"Center {i}, Iteration {j}, points assigned {X_i.shape[0]}, n {n}, s{s}")
+                # print(f"Center {i}, Iteration {j}, points assigned {X_i.shape[0]}, n {n}, s{s}") #logging
                 # update centroid
-                C[i, :] = s / n
+                # since all data falls in [-1,1] we can clip the centers to ensure this 
+                C[i, :] = np.clip(s / n, -1, 1)
             else:
-                rng = np.random.default_rng(seed)
-                C[i] = rng.integers(low=0, high=1, size=(1,d))
+                C[i] = rng.integers(low=-1, high=1, size=(1,d))
         all_centers.append(C.copy())
     if return_steps:
         return all_centers
