@@ -80,6 +80,7 @@ class PrivacyBudget:
                 raise Exception(f"{self.method} is not a valid privacy budget allocation method")
 
 
+# assume data is normalised to [-1,1]
 def dplloyd(k: int, X: np.ndarray, n_iter: int, priv: PrivacyBudget, seed=42, return_steps: bool = False) -> np.ndarray:
     """
 
@@ -94,11 +95,11 @@ def dplloyd(k: int, X: np.ndarray, n_iter: int, priv: PrivacyBudget, seed=42, re
         np.ndarray: the cluster centers 
     """    
     # initalise centers
-    C = initialCentroids(k, X.shape[1])
+    C = initialize_spherical_clusters(k, X.shape[1], radius=1).to_numpy()
     all_centers = [C.copy()]
     d = X.shape[1] # number of dimensions
     # repeat for n_iter for each cluster:
-    for _ in range(0, n_iter):
+    for j in range(0, n_iter):
         # assign each point to its closest center
         assignments = np.array([
             getClosestCenter(x, C) for x in X
@@ -114,8 +115,12 @@ def dplloyd(k: int, X: np.ndarray, n_iter: int, priv: PrivacyBudget, seed=42, re
                 n = max((X_i.shape[0] + noise((2 * n_iter) / e, 1, seed)), 1e-6) # don't allow negative counts 
                 # noisily calculate sum of points in cluster
                 s = X_i.sum(axis=0) + noise((2 * d * n_iter) / e, d, seed)
+                print(f"Center {i}, Iteration {j}, points assigned {X_i.shape[0]}, n {n}, s{s}")
                 # update centroid
                 C[i, :] = s / n
+            else:
+                rng = np.random.default_rng(seed)
+                C[i] = rng.integers(low=0, high=1, size=(1,d))
         all_centers.append(C.copy())
     if return_steps:
         return all_centers
