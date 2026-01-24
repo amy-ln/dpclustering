@@ -42,9 +42,9 @@ def create_grid_synopsis(X: np.ndarray, e: float, d: int, M: Optional[float] = N
     return synopsis
 
 
-
-X1 = np.random.multivariate_normal(mean=(5,10), cov=[[5,0],[0,5]], size=200)
-X2 = np.random.multivariate_normal(mean=(2,3), cov=[[5,0],[0,5]], size=150)
+rng = np.random.default_rng(42)
+X1 = rng.multivariate_normal(mean=(5,10), cov=[[5,0],[0,5]], size=200)
+X2 = rng.multivariate_normal(mean=(2,3), cov=[[5,0],[0,5]], size=150)
 X = np.concat([X1, X2])
 X = X - X.mean() 
 p = pd.DataFrame(create_grid_synopsis(X, 1, 2))
