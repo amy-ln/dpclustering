@@ -25,7 +25,7 @@ def initialize_spherical_clusters(k, d, radius=None, random_state=42):
     vecs /= np.linalg.norm(vecs, axis=1, keepdims=True)  # normalize to unit sphere
     centers = vecs * radius
 
-    return pd.DataFrame(centers)
+    return centers
 
 
 def getClosestCenter(x, C):
@@ -95,7 +95,7 @@ def dplloyd(k: int, X: np.ndarray, n_iter: int, priv: PrivacyBudget, seed=42, re
         np.ndarray: the cluster centers 
     """    
     # initalise centers
-    C = initialize_spherical_clusters(k, X.shape[1], radius=1).to_numpy()
+    C = initialize_spherical_clusters(k, X.shape[1], radius=1)
     all_centers = [C.copy()]
     d = X.shape[1] # number of dimensions
     rng = np.random.default_rng(seed)
@@ -144,15 +144,12 @@ def lloyd_with_weights(k: int, X: pd.DataFrame, weights: pd.DataFrame, n_iter: i
 
 def lloyd_with_weights(
     k: int,
-    X: pd.DataFrame,
-    weights: pd.Series,
+    X: np.ndarray,
+    weights: np.ndarray,
     n_iter: int,
     rs: int = 42
-):
+) -> np.ndarray:
     rng = np.random.default_rng(rs)
-
-    # Ensure alignment
-    weights = weights.loc[X.index]
 
     # Initialize centers
     C = initialize_spherical_clusters(
@@ -162,13 +159,14 @@ def lloyd_with_weights(
     for _ in range(n_iter):
 
         # Assign each point to closest center
-        assignments = X.apply(
-            lambda row: getClosestCenter(row, C),
-            axis=1
-        )
+        diffs = X[:, None, :] - C[None, :, :]
+        dists = np.linalg.norm(diffs, axis=2)
+        assigned = np.argmin(dists, axis=1)
+
+        print(assigned)
 
         for i in range(k):
-            mask = assignments == i
+            mask = assigned
 
             # Case 1: empty cluster → reinitialize
             if not mask.any():
