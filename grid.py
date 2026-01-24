@@ -36,7 +36,7 @@ def create_grid_synopsis(X: pd.DataFrame, e: float, d: int, M: Optional[float] =
     return all_points
 
 
-"""
+
 X1 = pd.DataFrame(np.random.multivariate_normal(mean=(5,10), cov=[[5,0],[0,5]], size=200))
 X2 = pd.DataFrame(np.random.multivariate_normal(mean=(2,3), cov=[[5,0],[0,5]], size=150))
 X = normalise(pd.concat([X1, X2]))
@@ -45,4 +45,3 @@ plt.scatter(x=p.iloc[:, 0], y=p.iloc[:, 1], s=p.iloc[:, 2])
 plt.show()
 print(p)
 print(lloyd_with_weights(2, p.iloc[:, :-1], p.iloc[:, -1], n_iter=5))
-"""
