@@ -161,31 +161,30 @@ def lloyd_with_weights(
         # Assign each point to closest center
         diffs = X[:, None, :] - C[None, :, :]
         dists = np.linalg.norm(diffs, axis=2)
-        assigned = np.argmin(dists, axis=1)
+        assignments = np.argmin(dists, axis=1)
 
-        print(assigned)
 
         for i in range(k):
-            mask = assigned
+            mask = assignments == i 
 
             # Case 1: empty cluster → reinitialize
-            if not mask.any():
-                idx = rng.choice(X.index)
-                C.iloc[i, :] = X.loc[idx].values
+            if not np.any(mask):
+                idx = rng.integers(n)
+                C[i] = X[idx]
                 continue
 
-            X_i = X.loc[mask]
-            w_i = weights.loc[mask]
+            X_i = X[mask]
+            w_i = weights[mask]
             w_sum = w_i.sum()
 
             # Case 2: zero total weight → reinitialize
             if w_sum == 0:
-                idx = rng.choice(X.index)
-                C.iloc[i, :] = X.loc[idx].values
+                idx = rng.integers(n)
+                C[i] = X[idx]
                 continue
 
             # Weighted mean update
-            C.iloc[i, :] = X_i.mul(w_i, axis=0).sum() / w_sum
+            C[i] = np.sum(X_i * w_i[:, None], axis=0) / w_sum
 
     return C
 
