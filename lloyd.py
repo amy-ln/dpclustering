@@ -156,6 +156,8 @@ def lloyd_with_weights(
         k, X.shape[1], radius=1, random_state=rs
     )
 
+    n = X.shape[0]
+
     for _ in range(n_iter):
 
         # Assign each point to closest center
