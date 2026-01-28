@@ -41,7 +41,7 @@ class AveragePrivacyParam():
 
 def get_private_average(nonprivate_points: np.ndarray, private_count: int,
                         average_privacy_param: AveragePrivacyParam,
-                        dim: int) -> np.ndarray:
+                        dim: int, seed:int = 42) -> np.ndarray:
   """Returns a differentially private average of the given data points.
 
   Args:
@@ -60,7 +60,7 @@ def get_private_average(nonprivate_points: np.ndarray, private_count: int,
         f'get_private_average() called with private_count={private_count}')
 
   sum_points = np.sum(nonprivate_points, axis=0)
-
+  np.random.seed(seed)
   # Add noise.
   sum_points += np.random.normal(
       scale=average_privacy_param.gaussian_standard_deviation, size=dim)
@@ -80,7 +80,7 @@ class CountPrivacyParam():
 
 
 def get_private_count(nonprivate_count: int,
-                      count_privacy_param: CountPrivacyParam) -> int:
+                      count_privacy_param: CountPrivacyParam, seed:int) -> int:
   """Computes differentially private count.
 
   Args:
@@ -94,6 +94,6 @@ def get_private_count(nonprivate_count: int,
   """
   if count_privacy_param.dlaplace_param == np.inf:
     return nonprivate_count
-  np.random.seed(42)
+  np.random.seed(seed)
   return nonprivate_count + stats.dlaplace.rvs(
       count_privacy_param.dlaplace_param)
