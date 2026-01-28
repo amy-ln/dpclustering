@@ -43,7 +43,7 @@ def bucket_using_privacy_accountant(X: pd.DataFrame, p: Params):
       privacy_param, p.radius, p.max_depth, multipliers)
     
     noisy_n = central_privacy_utils.get_private_count(X.shape[0], pcalc.count_privacy_param)
-    print("lalala", pcalc.average_privacy_param.gaussian_standard_deviation, pcalc.average_privacy_param.sensitivity )
+    print("privacy parameters: ", pcalc.average_privacy_param.gaussian_standard_deviation, pcalc.average_privacy_param.sensitivity )
     # copy heuristic thresholds from google code 
     num_points_in_node_for_low_noise = int(
       10 * np.sqrt(X.shape[1]) *
@@ -76,10 +76,10 @@ def bucket_using_privacy_accountant(X: pd.DataFrame, p: Params):
     return coreset_points, coreset_weights
 
 
-def create_bucket_synopsis(X: pd.DataFrame, p: Params):
+def create_bucket_synopsis(X: pd.DataFrame, p: Params, privacy_split: float = 0.8):
 
     # give half the privacy budget to computing the and half to computing weighted averages of points?
-    e1, e2 = p.epsilon*0.8, p.epsilon*0.2 
+    e1, e2 = p.epsilon*privacy_split, p.epsilon*(1-privacy_split)
 
     # make sure data is centered and that all points fall within provided radius
 
