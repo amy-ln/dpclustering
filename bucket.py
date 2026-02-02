@@ -96,7 +96,7 @@ def create_bucket_synopsis(X: np.ndarray, p: Params, seed: int = 42, privacy_spl
         p.include_threshold = max(1, p.include_threshold)
     if p.branching_threshold is None:
         p.branching_threshold = 3*p.include_threshold
-    #print(f"Parameters used \n max depth: {p.max_depth}\n branching threshold: {p.branching_threshold} \n include_threshold: {p.include_threshold}")
+    print(f"Parameters used \n max depth: {p.max_depth}\n branching threshold: {p.branching_threshold} \n include_threshold: {p.include_threshold}")
  
     # create tree : return leaf nodes pointing to all points "in" that node
     tree = LshTree(e1/(p.max_depth + 1), p.branching_threshold, p.include_threshold, p.max_depth, X, p.dimension, noisy_n, seed)
@@ -138,7 +138,7 @@ class LshTree:
         self.branching_threshold = branching_threshold
         self.include_node_threshold = include_node_threshold
         self.max_depth = max_depth
-        self.hash = SimHash(dimension, max_depth, seed=seed)
+        self.hash = SimHash(dim=dimension, max_hash_len=max_depth, seed=seed)
         self.create_lsh_tree(X, noisy_total_count)
 
     def count_with_noise(self, points):
