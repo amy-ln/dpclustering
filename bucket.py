@@ -52,8 +52,8 @@ def bucket_using_privacy_accountant(X: np.ndarray, p: Params, seed: int=42):
         p.include_threshold = max(1, p.include_threshold)
     if p.branching_threshold is None:
         p.branching_threshold = 3*p.include_threshold
-    #print(f"Parameters used \n max depth: {p.max_depth}\n branching threshold: {p.branching_threshold} \n include_threshold: {p.include_threshold}")
-    #print(f"pcalc", pcalc.average_privacy_param, pcalc.count_privacy_param)
+    print(f"Parameters used \n max depth: {p.max_depth}\n branching threshold: {p.branching_threshold} \n include_threshold: {p.include_threshold}")
+    print(f"pcalc", pcalc.average_privacy_param, pcalc.count_privacy_param)
     tree = LshTreeAdvanced(pcalc.count_privacy_param, p.branching_threshold, p.include_threshold, p.max_depth, X, p.dimension, noisy_n, seed) 
     leaves = tree.get_leaves()
     #print("Printing entire non private tree...")
