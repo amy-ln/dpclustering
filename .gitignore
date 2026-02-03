@@ -3,5 +3,3 @@ __pycache__
 .ipynb_checkpoints/
 datasets/apartments.csv
 datasets/taxi.csv
-google_clustering
-google_lsh_tree.py
