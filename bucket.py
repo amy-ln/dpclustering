@@ -192,7 +192,7 @@ class LshTree:
         level = 0
         nodes = self.tree.get(level, [])
         while nodes:
-            print ("level", level, [n.noisy_count for n in nodes])
+            print ("level", level, [(n.noisy_count, n.hash_prefix) for n in nodes])
             level += 1 
             nodes = self.tree.get(level, [])
 
