@@ -56,7 +56,8 @@ def bucket_using_privacy_accountant(X: np.ndarray, p: Params, seed: int=42):
     print(f"pcalc", pcalc.average_privacy_param, pcalc.count_privacy_param)
     tree = LshTreeAdvanced(pcalc.count_privacy_param, p.branching_threshold, p.include_threshold, p.max_depth, X, p.dimension, noisy_n, seed) 
     leaves = tree.get_leaves()
-    #print("Printing entire non private tree...")
+    print("Printing entire non private tree...")
+    tree.print_tree()
     averages = []
     for (points, noisy_count) in leaves:
         averages.append(central_privacy_utils.get_private_average(points, noisy_count, pcalc.average_privacy_param, p.dimension, seed))
@@ -156,7 +157,7 @@ class LshTree:
     def get_leaves(self):
         level = 0
         leaves = []
-        while level <= self.max_depth:
+        while level < self.max_depth:
             nodes = self.tree.get(level, [])
             if nodes:
                 leaf_nodes = list(filter(self.is_leaf, nodes))
@@ -165,6 +166,10 @@ class LshTree:
                 level += 1
             else:
                 break
+        final_level_nodes = self.tree.get(self.max_depth, [])
+        if final_level_nodes:
+            to_include = list(filter(lambda node: node.noisy_count >= self.include_node_threshold, final_level_nodes))
+            leaves = leaves + [(t.points, t.noisy_count) for t in to_include]
         return leaves
 
     def create_lsh_tree(self, X: pd.DataFrame, noisy_total_count:float ):
