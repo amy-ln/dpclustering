@@ -101,10 +101,10 @@ def create_bucket_synopsis(X: np.ndarray, p: Params, seed: int = 42, privacy_spl
     tree = LshTree(e1/(p.max_depth + 1), p.branching_threshold, p.include_threshold, p.max_depth, X, p.dimension, noisy_n, seed)
     leaves = tree.get_leaves()
 
-    # a sum query has sensitivity d * radius
+    # a sum query has sensitivity  radius
     averages = []
     for (points, noisy_count) in leaves:
-        a = np.sum(points, axis=0) + noise((p.dimension * p.radius)/e2, p.dimension, seed)
+        a = np.sum(points, axis=0) + noise((p.radius)/e2, p.dimension, seed)
         averages.append(a / noisy_count)
     #print(f"num leaves:", len(leaves))
     coreset_points = np.array(averages)
