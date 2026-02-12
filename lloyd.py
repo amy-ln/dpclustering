@@ -113,9 +113,9 @@ def dplloyd(k: int, X: np.ndarray, n_iter: int, priv: PrivacyBudget, seed=42, re
             if (assignments == i).any():
                 X_i = X[mask]
                 # noisily calculate number of points in cluster
-                n = max((X_i.shape[0] + noise((2 * n_iter) / e, 1, seed)), 1e-6) # don't allow negative counts 
+                n = max((X_i.shape[0] + noise(2 / e, 1, seed)), 1e-6) # don't allow negative counts 
                 # noisily calculate sum of points in cluster
-                s = X_i.sum(axis=0) + noise((2 * d * n_iter) / e, d, seed)
+                s = X_i.sum(axis=0) + noise((2 * d) / e, d, seed)
                 # print(f"Center {i}, Iteration {j}, points assigned {X_i.shape[0]}, n {n}, s{s}") #logging
                 # update centroid
                 # since all data falls in [-1,1] we can clip the centers to ensure this 
