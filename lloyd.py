@@ -49,11 +49,26 @@ def lloyd(k: int, X: pd.DataFrame, n_iter: int):
 
 class PrivacyBudget:
 
-    def __init__(self, epsilon: float, delta: float = None, method: str = "uniform", total_iter: int = None):
+    def __init__(self, epsilon: float, delta: float = None, method: str = "uniform", total_iter: int = None, k: int = None, d: int = None, N: int = None):
         self.epsilon = epsilon
         self.delta = delta
         self.total_iter = total_iter
         self.method = method
+        if method == "arithmetic":
+            if total_iter and k and d and N:
+                self.initArithmetic(k, d, N)
+            else:
+                raise Exception("Have not given sufficient parameters for arithmetic. Provide total iter, k, d, N")
+
+    def initArithmetic(self, k, d, N):
+        a = np.sqrt( ((500*k**3) / N**2) * (d+ np.cbrt(4*d*0.025**2))**3 )
+        if self.epsilon / a <= self.total_iter:
+            print("Privacy budget too small for arithmetic progression approach, using uniform. \n Minimum epsilon calculated as ", a)
+            self.method = "uniform"
+        else:
+            d = 2*(self.epsilon - a*self.total_iter)*(1/((self.total_iter)*(self.total_iter - 1)))
+            self.arithmetic_sequence = [a + (n-1)*d for n in range(1,self.total_iter+1)]
+            self.arithmetic_sequence.reverse()
 
     def uniform_epsilon(self, t: int) -> float:
         # get epsilon on iteration t when following uniform approach
@@ -66,7 +81,10 @@ class PrivacyBudget:
         return self.epsilon / 2**t 
     
     def series_sum_epsilon(self, t:int) -> float:
-        return self.epsilon / ((t+2)*(t+1))
+        return self.epsilon / (t*(t+1))
+    
+    def arithmetic_epsilon(self, t:int) -> float:
+        return self.arithmetic_sequence[t-1]
     
     def getEpsilon(self, t:int) -> float:
         match self.method:
@@ -76,6 +94,8 @@ class PrivacyBudget:
                 return self.dichotomy_epsilon(t)
             case "series sum":
                 return self.series_sum_epsilon(t)
+            case "arithmetic":
+                return self.arithmetic_epsilon(t)
             case _:
                 raise Exception(f"{self.method} is not a valid privacy budget allocation method")
 
@@ -100,7 +120,7 @@ def dplloyd(k: int, X: np.ndarray, n_iter: int, priv: PrivacyBudget, seed=42, re
     d = X.shape[1] # number of dimensions
     rng = np.random.default_rng(seed)
     # repeat for n_iter for each cluster:
-    for j in range(0, n_iter):
+    for j in range(1, n_iter+1):
         # assign each point to its closest center
         assignments = np.array([
             getClosestCenter(x, C) for x in X
@@ -108,7 +128,7 @@ def dplloyd(k: int, X: np.ndarray, n_iter: int, priv: PrivacyBudget, seed=42, re
         # update center to be the average of all points assigned
         for i in range(k):
             # get epsilon for this iteration
-            e = priv.getEpsilon(i)
+            e = priv.getEpsilon(j)
             mask = (assignments==i)
             if (assignments == i).any():
                 X_i = X[mask]
