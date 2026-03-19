@@ -75,7 +75,7 @@ def bucket_using_privacy_accountant(X: np.ndarray, p: Params, seed: int=42):
 def create_bucket_synopsis(X: np.ndarray, p: Params, seed: int = 42, privacy_split: float = 0.8):
 
     # give half the privacy budget to computing the and half to computing weighted averages of points?
-    e1, e2 = p.epsilon*privacy_split, p.epsilon*(1-privacy_split)
+    e1, e2 = p.epsilon*(1-privacy_split), p.epsilon*privacy_split
 
     # make sure data is centered and that all points fall within provided radius
 
@@ -85,9 +85,7 @@ def create_bucket_synopsis(X: np.ndarray, p: Params, seed: int = 42, privacy_spl
     
     # copy heuristic thresholds from google code 
     num_points_in_node_for_low_noise = int(
-      10 * np.sqrt(X.shape[1]) *
-      (1/e2) /
-      p.radius)
+      10 * np.sqrt(2*X.shape[1]) * (1/e2))
     
     if p.include_threshold is None:
         p.include_threshold = min(num_points_in_node_for_low_noise,
@@ -104,7 +102,8 @@ def create_bucket_synopsis(X: np.ndarray, p: Params, seed: int = 42, privacy_spl
     # a sum query has sensitivity  radius
     averages = []
     for (points, noisy_count) in leaves:
-        a = np.sum(points, axis=0) + noise((p.radius)/e2, p.dimension, seed)
+        # assuming data is normalised to [-1, 1]
+        a = np.sum(points, axis=0) + noise((p.dimension)/e2, p.dimension, seed)
         averages.append(a / noisy_count)
     #print(f"num leaves:", len(leaves))
     coreset_points = np.array(averages)
