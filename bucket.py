@@ -106,10 +106,18 @@ def create_bucket_synopsis(X: np.ndarray, p: Params, seed: int = 42, privacy_spl
 
     # a sum query has sensitivity  radius
     averages = []
-    for (points, noisy_count) in leaves:
-        # assuming every entry is between [-1, 1] bound l1 by d 
-        a = np.sum(points, axis=0) + gaussian_mechanism(e2, p.delta, p.radius, p.dimension, seed) #noise(p.dimension/e2, p.dimension, seed)
-        averages.append(a / noisy_count)
+    if use_gaussian:
+        print("using gaussian mechanism")
+        for (points, noisy_count) in leaves:
+            # assuming every entry is between [-1, 1] bound l1 by d 
+            a = np.sum(points, axis=0) + gaussian_mechanism(e2, p.delta, p.radius, p.dimension, seed) #noise(p.dimension/e2, p.dimension, seed)
+            averages.append(a / noisy_count)
+    else:
+        print("using laplace mechanism")
+        for (points, noisy_count) in leaves:
+            # assuming every entry is between [-1, 1] bound l1 by d 
+            a = np.sum(points, axis=0) + noise(p.dimension/e2, p.dimension, seed)
+            averages.append(a / noisy_count)
     #print(f"num leaves:", len(leaves))
     coreset_points = np.array(averages)
     coreset_weights = np.array([l[1] for l in leaves])
