@@ -31,6 +31,11 @@ class Params:
         self.branching_threshold = branching_threshold
         self.include_threshold = include_threshold
 
+def gaussian_mechanism(epsilon, delta, sensitivity, dimension, seed):
+    rng = np.random.default_rng(seed)
+    scale = (np.sqrt(2*np.log(1.25 / delta))*sensitivity) / epsilon
+    return rng.normal(loc=0.0, scale=scale, size=dimension)
+
 def bucket_using_privacy_accountant(X: np.ndarray, p: Params, seed: int=42):
 
     multipliers = clustering_params.PrivacyCalculatorMultiplier()
@@ -72,7 +77,7 @@ def bucket_using_privacy_accountant(X: np.ndarray, p: Params, seed: int=42):
     return coreset_points, coreset_weights
 
 
-def create_bucket_synopsis(X: np.ndarray, p: Params, seed: int = 42, privacy_split: float = 0.8):
+def create_bucket_synopsis(X: np.ndarray, p: Params, seed: int = 42, privacy_split: float = 0.8, use_gaussian = False):
 
     # give half the privacy budget to computing the and half to computing weighted averages of points?
     e1, e2 = p.epsilon*(1-privacy_split), p.epsilon*privacy_split
@@ -102,14 +107,14 @@ def create_bucket_synopsis(X: np.ndarray, p: Params, seed: int = 42, privacy_spl
     # a sum query has sensitivity  radius
     averages = []
     for (points, noisy_count) in leaves:
-        # assuming data is normalised to [-1, 1]
-        a = np.sum(points, axis=0) + noise((p.dimension)/e2, p.dimension, seed)
+        # assuming every entry is between [-1, 1] bound l1 by d 
+        a = np.sum(points, axis=0) + gaussian_mechanism(e2, p.delta, p.radius, p.dimension, seed) #noise(p.dimension/e2, p.dimension, seed)
         averages.append(a / noisy_count)
     #print(f"num leaves:", len(leaves))
     coreset_points = np.array(averages)
     coreset_weights = np.array([l[1] for l in leaves])
 
-    # scale coreset points to defined radius - improves accuracy. does not violate privacy as coreset points are private
+    # scale coreset points to defined radius - improves accuracthis county. does not violate privacy as coreset points are private
     scale = p.radius / np.maximum(
         np.linalg.norm(coreset_points, axis=-1), p.radius
     ).reshape(-1, 1)
@@ -117,6 +122,7 @@ def create_bucket_synopsis(X: np.ndarray, p: Params, seed: int = 42, privacy_spl
     
 
     return coreset_points, coreset_weights
+
 
 
 @dataclass
