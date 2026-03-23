@@ -77,7 +77,7 @@ def bucket_using_privacy_accountant(X: np.ndarray, p: Params, seed: int=42):
     return coreset_points, coreset_weights
 
 
-def create_bucket_synopsis(X: np.ndarray, p: Params, seed: int = 42, privacy_split: float = 0.8, use_gaussian = False):
+def create_bucket_synopsis(X: np.ndarray, p: Params, seed: int = 42, privacy_split: float = 0.8, use_gaussian = True):
 
     # give half the privacy budget to computing the and half to computing weighted averages of points?
     e1, e2 = p.epsilon*(1-privacy_split), p.epsilon*privacy_split
@@ -90,7 +90,7 @@ def create_bucket_synopsis(X: np.ndarray, p: Params, seed: int = 42, privacy_spl
     
     # copy heuristic thresholds from google code 
     num_points_in_node_for_low_noise = int(
-      10 * np.sqrt(2*X.shape[1]) * (1/e2))
+      10 * np.sqrt(X.shape[1]) * (1/e2) * 2*np.log(1.25 / p.delta))
     
     if p.include_threshold is None:
         p.include_threshold = min(num_points_in_node_for_low_noise,
