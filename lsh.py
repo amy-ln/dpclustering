@@ -49,7 +49,7 @@ class SimHash():
 
   def __post_init__(self):
     if self.projection_vectors is None:
-        rng = np.random.default_rng(self.seed)
+        rng = np.random.default_rng(self.seed) ## MODIFICATION FROM ORIGINAL FILE: added a seed for reproducibility 
         self.projection_vectors = rng.normal(
             size=(self.max_hash_len, self.dim)
         )
@@ -84,9 +84,3 @@ class SimHash():
         "1": datapoints[projected_values < 0]
     }
 
-"""
-hash = SimHash(2, 16)
-data = np.array([[1,2], [3,4], [1,4]])
-print(hash.group_by_next_hash(data))
-print(hash.hash_single_point(np.array([1,2])))
-"""
