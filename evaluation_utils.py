@@ -8,5 +8,4 @@ def kmeans_loss(clusters: np.ndarray, datapoints: np.ndarray) -> float:
     # take the minimum distance for each point 
     min_distances = np.min(distances, axis=1)
     # take the average
-    return np.mean(min_distances)
-
+    return np.mean(min_distances) / datapoints.shape[1]

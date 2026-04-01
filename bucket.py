@@ -98,7 +98,7 @@ def create_bucket_synopsis(X: np.ndarray, p: Params, seed: int = 42, privacy_spl
         p.include_threshold = max(1, p.include_threshold)
     if p.branching_threshold is None:
         p.branching_threshold = 3*p.include_threshold
-    print(f"Parameters used \n max depth: {p.max_depth}\n branching threshold: {p.branching_threshold} \n include_threshold: {p.include_threshold}")
+    # print(f"Parameters used \n max depth: {p.max_depth}\n branching threshold: {p.branching_threshold} \n include_threshold: {p.include_threshold}")
  
     # create tree : return leaf nodes pointing to all points "in" that node
     tree = LshTree(e1/(p.max_depth + 1), p.branching_threshold, p.include_threshold, p.max_depth, X, p.dimension, noisy_n, seed)
@@ -107,13 +107,11 @@ def create_bucket_synopsis(X: np.ndarray, p: Params, seed: int = 42, privacy_spl
     # a sum query has sensitivity  radius
     averages = []
     if use_gaussian:
-        print("using gaussian mechanism")
         for (points, noisy_count) in leaves:
             # assuming every entry is between [-1, 1] bound l1 by d 
             a = np.sum(points, axis=0) + gaussian_mechanism(e2, p.delta, p.radius, p.dimension, seed) #noise(p.dimension/e2, p.dimension, seed)
             averages.append(a / noisy_count)
     else:
-        print("using laplace mechanism")
         for (points, noisy_count) in leaves:
             # assuming every entry is between [-1, 1] bound l1 by d 
             a = np.sum(points, axis=0) + noise(p.dimension/e2, p.dimension, seed)

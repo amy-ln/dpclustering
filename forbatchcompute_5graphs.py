@@ -89,7 +89,7 @@ def get_results(data: np.ndarray, ks: list, lloyd_iters: int, M: int, num_random
     lsh_google = []
 
     for k in ks:
-        dpl.append(dplloyd_experiment(X=data, k=k, epsilon=1, method="dichotomy", iterations=lloyd_iters, trials=num_randomised_trials))
+        dpl.append(dplloyd_experiment(X=data, k=k, epsilon=1, method="uniform", iterations=lloyd_iters, trials=num_randomised_trials))
         grid.append(grid_experiment(data, k=k, e=1, M=M, n_trials=num_randomised_trials))
         p = Params(epsilon=1, delta=1e-6, radius=non_private_radius(data), dimension=data.shape[1], k=k, max_depth=15)
         lsh_mine.append(lsh_experiment(algo=1, data=data, p=p, n_trials=num_randomised_trials))
