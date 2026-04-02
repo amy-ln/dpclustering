@@ -13,7 +13,7 @@ The repository for my third year project on differentially private clustering.
 
 Main algorithms are contained in the files described above. 
 
-- *datasets* contains the data used in the final report in numpy files 
+- *experiments/datasets* contains the data used in the final report in numpy files 
 
 - *experiments* contains mostly Jupyter notebooks which were used for experiments and to produce plots for the final report. 
 
