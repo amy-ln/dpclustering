@@ -1,10 +1,8 @@
 import pandas as pd
 import numpy as np
 import itertools
-import matplotlib.pyplot as plt 
 from typing import Optional
-from util import distance, normalise, noise
-from lloyd import lloyd_with_weights
+from util import distance,  noise
 
 def getSquare(x: np.array, grid: pd.DataFrame):
     distances = grid.apply(lambda row: distance(x, row), axis=1)
@@ -14,8 +12,20 @@ def getSquare(x: np.array, grid: pd.DataFrame):
 # M is the number of squares to split grid into, d is the dimension, e is epsilon
 # assume the data is normalised so each dimension is in [-1,1]
 def create_grid_synopsis(X: np.ndarray, e: float, d: int, M: Optional[float] = None, seed=42) -> np.ndarray:
+    """ Create the private synopsis using the Grid algorithm. 
 
-    # a non-private approximation for M. Ideally M would be given. 
+    Args:
+        X (np.ndarray): The non private data which should be centred and each column should take values in [-1,1]
+        e (float): The privacy budget epsilon. 
+        d (int): The dimension of the data X
+        M (Optional[float], optional): The resolution of the grid. Uses a non-private heuristic if not given. 
+        seed (int, optional): Randomness seed for reproducibility. Defaults to 42.
+
+    Returns:
+        np.ndarray: _description_
+    """    
+
+    # a non-private approximation for M using heuristic described in final report. Ideally M would be given. 
     if not M:
         M = round((X.shape[0]*e) / 10)
         print(M)
@@ -41,6 +51,7 @@ def create_grid_synopsis(X: np.ndarray, e: float, d: int, M: Optional[float] = N
 
     return synopsis
 
+# exactly the same as the method above but the calculations are done in chunks due to reduce memory usage
 def create_grid_synopsis_large(X: np.ndarray, e: float, d: int, M: int, seed=42) -> np.ndarray:
     # create the grid 
     edges = np.linspace(-1, 1, M + 1)
@@ -65,15 +76,3 @@ def create_grid_synopsis_large(X: np.ndarray, e: float, d: int, M: int, seed=42)
     synopsis = np.hstack([grid, counts[:, None]])
 
     return synopsis
-
-"""
-rng = np.random.default_rng(42)
-X1 = rng.multivariate_normal(mean=(0.5,0.5), cov=[[1,0],[0,1]], size=200)
-X2 = rng.multivariate_normal(mean=(-0.5,-0.5), cov=[[1,0],[0,1]], size=150)
-X = np.concat([X1, X2])
-p = pd.DataFrame(create_grid_synopsis(X, 1, 2, M=3))
-plt.scatter(x=p.iloc[:, 0], y=p.iloc[:, 1], s=p.iloc[:, 2])
-plt.show()
-print(p)
-print(lloyd_with_weights(2, p.iloc[:, :-1], p.iloc[:, -1], n_iter=5))
-"""

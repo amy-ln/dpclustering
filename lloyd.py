@@ -6,7 +6,7 @@ from util import distance, noise, normalise
 def initialCentroids(k:int, d:int, minimum:int = -1, maximum:int= 1):
     return np.linspace([minimum]*d, [maximum]*d, num=k)
 
-# to initialise the centroids we need a minimum and maximum for the data range: be careful of this affecting privacy
+# to initialise the centroids we need a minimum and maximum for the data range: this is NON private
 # k is the number of centers, X is the data
 def initialCentroidsWithData(k: int, X: pd.DataFrame):
     minRange=X.min()
@@ -16,6 +16,7 @@ def initialCentroidsWithData(k: int, X: pd.DataFrame):
 
     return C
 
+# another method for intialising clusters using the radius of the data. 
 def initialize_spherical_clusters(k, d, radius=None, random_state=42):
     if radius is None:
         radius = d
@@ -27,13 +28,12 @@ def initialize_spherical_clusters(k, d, radius=None, random_state=42):
 
     return centers
 
-
+# x is the data point, C is all the centers. Return index of the closest center. 
 def getClosestCenter(x, C):
-    # x is the data point, C is all the centers. Return index of the closest center. 
     distances = np.apply_along_axis(lambda c: distance(x,c), axis=1, arr=C)
     return np.argmin(distances)
 
-
+# non private lloyd algorithm. 
 def lloyd(k: int, X: pd.DataFrame, n_iter: int):
     # initalise centers
     C = pd.DataFrame(initialCentroids(k, X.shape[1]))
@@ -47,6 +47,10 @@ def lloyd(k: int, X: pd.DataFrame, n_iter: int):
                 C.iloc[i, :] = X[assignments == i].mean()
     return C
 
+""" 
+    Privacy Budget class to allow different allocation methods. 
+    Can perform uniform, dichotomy, series sum or arithmetic. 
+"""
 class PrivacyBudget:
 
     def __init__(self, epsilon: float, delta: float = None, method: str = "uniform", total_iter: int = None, k: int = None, d: int = None, N: int = None):
@@ -102,7 +106,7 @@ class PrivacyBudget:
 
 # assume data is normalised to [-1,1]
 def dplloyd(k: int, X: np.ndarray, n_iter: int, priv: PrivacyBudget, seed=42, return_steps: bool = False) -> np.ndarray:
-    """
+    """ Performs differentially private Lloyd algorithm. 
 
     Args:
         k (int): The number of clusters 
@@ -147,28 +151,21 @@ def dplloyd(k: int, X: np.ndarray, n_iter: int, priv: PrivacyBudget, seed=42, re
         return all_centers
     return C
 
-"""
-def lloyd_with_weights(k: int, X: pd.DataFrame, weights: pd.DataFrame, n_iter: int, rs=42):
-    # initalise centers
-    C = initialize_spherical_clusters(k, X.shape[1], radius=1, random_state=rs)
-    # repeat for n_iter for each cluster:
-    for _ in range(0, n_iter):
-        # assign each point to its closest center
-        assignments = X.apply(lambda row: getClosestCenter(row, C), axis=1)
-        # update center to be the average of all points assigned
-        for i in range(0, len(C)):
-            if (assignments == i).any():
-                C.iloc[i, :] = (X[assignments == i].mul(weights[assignments == i], axis=0).sum()) / (weights[assignments==i].sum())
-    return C
-"""
 
-def lloyd_with_weights(
-    k: int,
-    X: np.ndarray,
-    weights: np.ndarray,
-    n_iter: int,
-    rs: int = 42
-) -> np.ndarray:
+def lloyd_with_weights(k: int, X: np.ndarray, weights: np.ndarray, n_iter: int, rs: int = 42) -> np.ndarray:
+    """ Non private lloyd algorithm with weights used to obtain centres from a private synopsis (Grid or Tree with LSH)
+    We implement ourselves as opposed to using library function to allow for negative weights in Grid synopsis. 
+
+    Args:
+        k (int): The number of centres. 
+        X (np.ndarray): The points to use for clustering. 
+        weights (np.ndarray): The weights of the points X.
+        n_iter (int): Number of iterations to perform before returning centres. 
+        rs (int, optional): Random seed. Only used for reinitializing centres when no points assigned. Defaults to 42.
+
+    Returns:
+        np.ndarray: _description_
+    """    
     rng = np.random.default_rng(rs)
 
     # Initialize centers
@@ -180,7 +177,7 @@ def lloyd_with_weights(
 
     for _ in range(n_iter):
 
-        # Assign each point to closest center
+        # assign each point to closest center
         diffs = X[:, None, :] - C[None, :, :]
         dists = np.linalg.norm(diffs, axis=2)
         assignments = np.argmin(dists, axis=1)
@@ -189,7 +186,7 @@ def lloyd_with_weights(
         for i in range(k):
             mask = assignments == i 
 
-            # Case 1: empty cluster → reinitialize
+            # empty cluster so reinitialize
             if not np.any(mask):
                 idx = rng.integers(n)
                 C[i] = X[idx]
@@ -199,13 +196,13 @@ def lloyd_with_weights(
             w_i = weights[mask]
             w_sum = w_i.sum()
 
-            # Case 2: zero total weight → reinitialize
+            # zero total weight cluster so reinitialize
             if w_sum == 0:
                 idx = rng.integers(n)
                 C[i] = X[idx]
                 continue
 
-            # Weighted mean update
+            # update the centre using the weighted mean
             C[i] = np.sum(X_i * w_i[:, None], axis=0) / w_sum
 
     return C
