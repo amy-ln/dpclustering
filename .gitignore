@@ -6,4 +6,3 @@ datasets/apartments.csv
 datasets/taxi.csv
 joboutput*
 grid.sbatch
-forbatchcompute*
